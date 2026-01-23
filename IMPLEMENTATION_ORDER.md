@@ -29,6 +29,6 @@ To ensure a smooth development process without broken dependencies, the MVP comp
 
 ## Summary Checklist
 
-1. [ ] Apply `network-interface-management`
-2. [ ] Apply `instruction-service`
+1. [x] Apply `network-interface-management`
+2. [x] Apply `instruction-service`
 3. [ ] Apply `tray-ui`

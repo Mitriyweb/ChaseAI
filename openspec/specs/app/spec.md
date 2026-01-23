@@ -1,11 +1,14 @@
 # App Specification
 
-## ADDED Requirements
+## Purpose
+
+To provide a secure, local-first control plane for AI agents, capable of managing network bindings, instruction contexts, and execution lifecycles through a consolidated application interface.
+
+## Requirements
 
 ### Requirement: Custom Rust Structure
 
-The ChaseAI core MUST be built in Rust with a non-standard directory structure to
-cleanly separate source and tests.
+The ChaseAI core MUST be built in Rust with a non-standard directory structure to cleanly separate source and tests.
 
 #### Scenario: Source Code Location
 
@@ -19,14 +22,12 @@ cleanly separate source and tests.
 
 ### Requirement: Controlled Execution Baseline
 
-The system MUST provide a basic library structure and an executable for
-controlled execution of AI-driven commands.
+The system MUST provide a basic library structure and an executable for controlled execution of AI-driven commands.
 
 #### Scenario: Library Initialization
 
 - **WHEN** the library is compiled
-- **THEN** it MUST expose a core entry point in `app.rs`
-  (configured in `Cargo.toml` as `[lib] name = "app"`)
+- **THEN** it MUST expose a core entry point in `app.rs` (configured in `Cargo.toml` as `[lib] name = "app"`)
 
 #### Scenario: Executable Entry Point
 
