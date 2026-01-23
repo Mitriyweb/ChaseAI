@@ -37,6 +37,7 @@ According to the architecture principles of ChaseAI, the user must be the "gover
 ## User-Facing Impact
 
 The user will see a ChaseAI icon in the macOS menu bar. Clicking it will reveal:
+
 1. Current active IP and interface name.
 2. List of ports with their assigned roles and status.
 3. Submenus to change IP/Interface.

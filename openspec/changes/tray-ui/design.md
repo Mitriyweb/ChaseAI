@@ -4,7 +4,7 @@
 
 The Tray UI serves as the control plane for the backend services. It operates as a thin layer that reads from and writes to common configuration files, while also triggering lifecycle events in the instruction service.
 
-```
+```text
 ┌─────────────────────────────────────────┐
 │              macOS Tray UI              │
 │  (Menu Bar Icon, Dropdowns, Toggles)    │
@@ -29,6 +29,7 @@ The Tray UI serves as the control plane for the backend services. It operates as
 **Responsibility**: Initialize the system tray icon and manage the application event loop on macOS.
 
 **API Pattern**:
+
 ```rust
 pub struct TrayManager {
     tray: TrayIcon,
@@ -47,17 +48,18 @@ impl TrayManager {
 **Responsibility**: Construct a dynamic menu structure that reflects the real-time state of network interfaces and port roles.
 
 **Menu Map**:
+
 - **Status Section**:
-    - `ChaseAI: Running` (or Disabled)
-    - `IP: 127.0.0.1 (Loopback)`
+  - `ChaseAI: Running` (or Disabled)
+  - `IP: 127.0.0.1 (Loopback)`
 - **Configuration Section**:
-    - `Select Interface >` (Loopback | LAN | Public)
-    - `Port 3000: Instruction [ON/OFF]`
-    - `Port 3001: Verification [ON/OFF]`
+  - `Select Interface >` (Loopback | LAN | Public)
+  - `Port 3000: Instruction [ON/OFF]`
+  - `Port 3001: Verification [ON/OFF]`
 - **Global Commands**:
-    - `Enable All Services` / `Disable All Services`
-    - `Restart Services`
-    - `Exit`
+  - `Enable All Services` / `Disable All Services`
+  - `Restart Services`
+  - `Exit`
 
 ### 3. State Sync
 
@@ -75,12 +77,14 @@ impl TrayManager {
 ## User Interactions
 
 ### Interface Switching
+
 1. User clicks "Select Interface".
 2. User selects "LAN (192.168.1.10)".
 3. UI updates `network.toml` with `default_interface = "Lan"`.
 4. UI triggers a reload of the `instruction-service`.
 
 ### Port Role Management
+
 1. User sees "Port 3000: Instruction".
 2. User clicks the item.
 3. UI toggles the `enabled` field for that port in `network.toml`.

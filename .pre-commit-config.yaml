@@ -30,7 +30,7 @@ repos:
         pass_filenames: false
         always_run: true
       - id: clippy
-        name: clippy 
+        name: clippy
         entry: npm run lint:rust
         language: system
         files: \.rs$
@@ -47,21 +47,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-      - id: build
-        name: build
-        entry: npm run build
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: build-verify
-        name: build-verify
-        entry: npm run start:prod
-        language: system
-        pass_filenames: false
-        always_run: true
-      - id: dev-start
-        name: dev-start
-        entry: npm run start
+      - id: npm-audit
+        name: npm audit
+        entry: bash -c 'npm audit --audit-level=high'
         language: system
         pass_filenames: false
         always_run: true

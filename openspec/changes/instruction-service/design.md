@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-```
+```text
 ┌───────────────────────────────────────────────┐
 │              AI Agent (External)              │
 │         HTTP Request: GET /context            │
@@ -36,6 +36,7 @@
 **Responsibility**: Data structure representing an instruction context for an AI agent
 
 **Definition**:
+
 ```rust
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +72,7 @@ impl InstructionContext {
 ```
 
 **Validation Rules**:
+
 - `system` must not be empty
 - `role` must not be empty
 - `base_instruction` must not be empty
@@ -82,6 +84,7 @@ impl InstructionContext {
 **Responsibility**: Manage CRUD operations for instruction contexts
 
 **API**:
+
 ```rust
 use std::collections::HashMap;
 
@@ -112,6 +115,7 @@ impl ContextManager {
 ```
 
 **Behavior**:
+
 - Before creating context, verify port exists in network config
 - Automatically persist changes via `ContextStorage`
 - Cache contexts in memory for fast access
@@ -122,6 +126,7 @@ impl ContextManager {
 **Responsibility**: Persist and load instruction contexts
 
 **API**:
+
 ```rust
 pub struct ContextStorage {
     config_dir: PathBuf,
@@ -142,6 +147,7 @@ impl ContextStorage {
 ```
 
 **Storage Format** (JSON):
+
 ```json
 {
   "contexts": [
@@ -170,6 +176,7 @@ impl ContextStorage {
 ```
 
 **File Location**:
+
 - macOS/Linux: `~/.config/chaseai/contexts.json`
 - Windows: `%APPDATA%\ChaseAI\contexts.json`
 
@@ -178,6 +185,7 @@ impl ContextStorage {
 **Responsibility**: HTTP server that serves instruction contexts to AI agents
 
 **API**:
+
 ```rust
 use axum::{Router, Json};
 
@@ -209,10 +217,12 @@ async fn get_context(
 ```
 
 **Endpoints**:
+
 - `GET /context` - Returns the instruction context for this port as JSON
 - `GET /health` - Health check endpoint (returns 200 OK)
 
 **Error Responses**:
+
 - 404 - No context configured for this port
 - 500 - Internal server error
 
@@ -221,6 +231,7 @@ async fn get_context(
 **Responsibility**: Manage multiple instruction servers (one per enabled port)
 
 **API**:
+
 ```rust
 pub struct ServerPool {
     servers: HashMap<u16, InstructionServer>,
@@ -249,6 +260,7 @@ impl ServerPool {
 ```
 
 **Behavior**:
+
 - On startup, read network config and start server for each enabled port binding
 - When port is enabled in network config, start corresponding server
 - When port is disabled, stop corresponding server
@@ -257,7 +269,8 @@ impl ServerPool {
 ## Data Flow
 
 ### Startup Flow
-```
+
+```text
 1. Load NetworkConfig (from network-interface-management)
 2. Load ContextStorage → get all saved contexts
 3. Initialize ContextManager with loaded contexts
@@ -267,7 +280,8 @@ impl ServerPool {
 ```
 
 ### Agent Request Flow
-```
+
+```text
 1. AI Agent sends: GET http://127.0.0.1:3000/context
 2. InstructionServer receives request
 3. Server extracts port number (3000)
@@ -278,7 +292,8 @@ impl ServerPool {
 ```
 
 ### Context Update Flow
-```
+
+```text
 1. User modifies context via UI (future) or config file
 2. ContextManager.set_context(port, new_context)
 3. Manager validates port exists in network config
@@ -307,18 +322,21 @@ impl ServerPool {
 ## Testing Strategy
 
 ### Unit Tests
+
 - InstructionContext: Validation rules, serialization
 - ContextManager: CRUD operations, validation
 - ContextStorage: Save/load, file handling
 - InstructionServer: Endpoint handlers (with mock state)
 
 ### Integration Tests
+
 - Full flow: Create context → Start server → HTTP request → Verify response
 - Test with different interfaces (loopback, LAN)
 - Test error cases (missing context, invalid port)
 - Test persistence (restart simulation)
 
 ### Manual Testing
+
 - Use `curl` to test endpoints: `curl http://127.0.0.1:3000/context`
 - Verify JSON response format
 - Test with real AI agent client (if available)
@@ -333,32 +351,40 @@ impl ServerPool {
 ## Trade-offs
 
 ### Decision: HTTP vs TCP Protocol
+
 **Chosen**: HTTP (REST)
 **Rationale**:
+
 - Simpler for AI agents to integrate (standard HTTP clients)
 - Easier debugging (curl, browser)
 - JSON is human-readable
 **Trade-off**: Binary TCP protocol would be more efficient, but adds complexity
 
 ### Decision: Pull vs Push Model
+
 **Chosen**: Pull (agent requests context)
 **Rationale**:
+
 - Simpler implementation for MVP
 - Agent controls when it needs context
 - Stateless server design
 **Trade-off**: Push model would allow real-time context updates, but requires persistent connections
 
 ### Decision: In-Memory Cache
+
 **Chosen**: Cache all contexts in memory
 **Rationale**:
+
 - Fast access for every request
 - Context data is small
 - Simplifies implementation
 **Trade-off**: Not suitable for thousands of contexts, but MVP has <10 ports
 
 ### Decision: One Server Per Port
+
 **Chosen**: Separate server instance for each port
 **Rationale**:
+
 - Each port can bind to different interface
 - Independent lifecycle (enable/disable per port)
 - Isolation for future multi-tenancy

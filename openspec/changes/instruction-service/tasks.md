@@ -7,7 +7,7 @@
   - `system` (String)
   - `role` (String)
   - `base_instruction` (String)
-  - `allowed_actions` (Vec<String>)
+  - `allowed_actions` (`Vec<String>`)
   - `verification_required` (bool)
 - [ ] Implement validation for context fields
 - [ ] Add unit tests for context creation and validation (≥85% coverage)
@@ -58,7 +58,7 @@
 ## 6. Validation and Testing
 
 - [ ] Create integration test: create context → start server → query endpoint → verify response
-- [ ] Test with loopback interface (curl http://127.0.0.1:3000/context)
+- [ ] Test with loopback interface (curl <http://127.0.0.1:3000/context>)
 - [ ] Test with LAN interface
 - [ ] Test error cases (invalid port, missing context, etc.)
 - [ ] Run `cargo clippy` and fix all warnings
