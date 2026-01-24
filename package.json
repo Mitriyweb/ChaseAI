@@ -12,7 +12,6 @@
         "test:rust": "cargo test",
         "start": "bun run start:app",
         "start:rust": "cargo run",
-        "start:prod": "./run-app.sh",
         "start:app": "./run-app.sh",
         "build": "bun run build:app",
         "build:rust": "cargo build --release",
