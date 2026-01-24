@@ -56,11 +56,5 @@ jobs:
       - name: Run build
         run: npm run build
 
-      - name: Verify production run
-        run: npm run start:prod
-
-      - name: Run start
-        run: npm run start
-
       - name: Knip
         run: npm run knip

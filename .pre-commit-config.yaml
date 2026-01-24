@@ -41,12 +41,12 @@ repos:
         language: system
         files: \.rs$
         pass_filenames: false
-      - id: npm-audit
-        name: npm audit
-        entry: bash -c 'npm audit --audit-level=high'
+      - id: build
+        name: build
+        entry: npm run build
         language: system
+        files: \.rs$
         pass_filenames: false
-        always_run: true
       - id: npm-audit
         name: npm audit
         entry: bash -c 'npm audit --audit-level=high'

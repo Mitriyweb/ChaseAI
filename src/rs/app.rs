@@ -77,10 +77,191 @@ impl App {
             }
         });
 
-        self.tray.setup()?;
+        self.tray.setup(&self.config)?;
 
         println!("System ready for controlled execution.");
         Ok(())
+    }
+    pub fn handle_menu_event(&mut self, event: tray_icon::menu::MenuEvent) {
+        let id = event.id.as_ref();
+        println!("Processing menu event: {}", id);
+        let mut changed = false;
+
+        if id == "quit" {
+            println!("Quit requested, exiting...");
+            std::process::exit(0);
+        } else if let Some(name) = id.strip_prefix("interface:") {
+            println!("Interface change requested: {}", name);
+            // Find interface by name
+            if let Ok(interfaces) =
+                crate::network::interface_detector::InterfaceDetector::detect_all()
+            {
+                if let Some(iface) = interfaces.iter().find(|i| i.name == name) {
+                    self.config.default_interface = iface.interface_type.clone();
+                    // Update all bindings to use this new interface type/ip
+                    for binding in &mut self.config.port_bindings {
+                        binding.interface = iface.clone();
+                    }
+                    changed = true;
+                    println!("Interface changed to: {:?}", iface.interface_type);
+                }
+            }
+        } else if let Some(port_str) = id.strip_prefix("port:") {
+            println!("Port toggle requested: {}", port_str);
+            if let Ok(port) = port_str.parse::<u16>() {
+                if let Some(binding) = self
+                    .config
+                    .port_bindings
+                    .iter_mut()
+                    .find(|p| p.port == port)
+                {
+                    binding.enabled = !binding.enabled;
+                    changed = true;
+                    println!("Port {} toggled to: {}", port, binding.enabled);
+                }
+            }
+        } else if id == "cmd:enable_all" {
+            println!("Enable all services requested");
+            for binding in &mut self.config.port_bindings {
+                binding.enabled = true;
+            }
+            changed = true;
+        } else if id == "cmd:disable_all" {
+            println!("Disable all services requested");
+            for binding in &mut self.config.port_bindings {
+                binding.enabled = false;
+            }
+            changed = true;
+        } else if id == "cmd:add_port" {
+            println!("Add port requested");
+            // For now, add a simple port (in future, this could open a dialog)
+            self.add_default_port();
+            changed = true;
+        } else if let Some(port_str) = id.strip_prefix("remove_port:") {
+            println!("Remove port requested: {}", port_str);
+            if let Ok(port) = port_str.parse::<u16>() {
+                self.config.port_bindings.retain(|b| b.port != port);
+                changed = true;
+                println!("Port {} removed", port);
+            }
+        } else if let Some(role_change) = id.strip_prefix("role:") {
+            // Format: "role:PORT:ROLE"
+            let parts: Vec<&str> = role_change.split(':').collect();
+            if parts.len() == 2 {
+                if let Ok(port) = parts[0].parse::<u16>() {
+                    let role_str = parts[1];
+                    println!("Change role requested for port {}: {}", port, role_str);
+
+                    if let Some(binding) = self
+                        .config
+                        .port_bindings
+                        .iter_mut()
+                        .find(|b| b.port == port)
+                    {
+                        let new_role = match role_str {
+                            "Instruction" => crate::network::port_config::PortRole::Instruction,
+                            "Verification" => crate::network::port_config::PortRole::Verification,
+                            _ => {
+                                println!("Unknown role: {}", role_str);
+                                return;
+                            }
+                        };
+
+                        binding.role = new_role;
+                        changed = true;
+                        println!("Port {} role changed to: {:?}", port, new_role);
+                    }
+                }
+            }
+        } else {
+            println!("Unknown menu event: {}", id);
+        }
+
+        if changed {
+            println!("Configuration changed, saving and refreshing...");
+            // 1. Save config
+            if let Err(e) = self.config.save() {
+                eprintln!("Failed to save config: {}", e);
+            }
+            self.refresh_ui_and_servers();
+        }
+    }
+
+    pub fn reload_config(&mut self) {
+        println!("Reloading configuration due to external change...");
+        if let Ok(new_config) = crate::config::network_config::NetworkConfig::load() {
+            self.config = new_config;
+            self.refresh_ui_and_servers();
+        } else {
+            eprintln!("Failed to reload config");
+        }
+    }
+
+    fn refresh_ui_and_servers(&mut self) {
+        // 2. Update UI
+        if let Err(e) = self.tray.update_menu(&self.config) {
+            eprintln!("Failed to update tray: {}", e);
+        }
+
+        // 3. Update Servers
+        let pool = self.server_pool.clone();
+        let config_clone = self.config.clone();
+        self.runtime.block_on(async {
+            if let Err(e) = pool.lock().await.update(&config_clone).await {
+                eprintln!("Failed to update servers: {}", e);
+            }
+        });
+    }
+
+    fn add_default_port(&mut self) {
+        // Show dialog to get port configuration
+        if let Some(port_config) = crate::ui::dialogs::show_add_port_dialog() {
+            // Check if port already exists
+            if self
+                .config
+                .port_bindings
+                .iter()
+                .any(|b| b.port == port_config.port)
+            {
+                eprintln!("Port {} already exists", port_config.port);
+                return;
+            }
+
+            // Get current interface or use loopback
+            let interface = if let Ok(interfaces) =
+                crate::network::interface_detector::InterfaceDetector::detect_all()
+            {
+                interfaces
+                    .into_iter()
+                    .find(|i| i.interface_type == self.config.default_interface)
+                    .unwrap_or_else(|| crate::network::interface_detector::NetworkInterface {
+                        name: "lo0".to_string(),
+                        ip_address: "127.0.0.1".parse().unwrap(),
+                        interface_type: crate::network::interface_detector::InterfaceType::Loopback,
+                    })
+            } else {
+                crate::network::interface_detector::NetworkInterface {
+                    name: "lo0".to_string(),
+                    ip_address: "127.0.0.1".parse().unwrap(),
+                    interface_type: crate::network::interface_detector::InterfaceType::Loopback,
+                }
+            };
+
+            let new_binding = crate::network::port_config::PortBinding {
+                port: port_config.port,
+                interface,
+                role: port_config.role,
+                enabled: port_config.enabled,
+            };
+
+            self.config.port_bindings.push(new_binding);
+            println!(
+                "Added new port: {} with role {:?}, enabled: {}",
+                port_config.port, port_config.role, port_config.enabled
+            );
+        } else {
+            println!("Add port cancelled");
+        }
     }
 }
 

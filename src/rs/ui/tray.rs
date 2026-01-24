@@ -1,9 +1,7 @@
-use crate::network::interface_detector::InterfaceDetector;
+use crate::config::network_config::NetworkConfig;
+use crate::ui::tray_menu;
 use std::path::Path;
-use tray_icon::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
-    Icon, TrayIcon, TrayIconBuilder,
-};
+use tray_icon::{Icon, TrayIcon, TrayIconBuilder};
 
 pub struct TrayManager {
     tray_icon: Option<TrayIcon>,
@@ -20,6 +18,7 @@ impl Default for TrayManager {
         Self::new()
     }
 }
+
 impl TrayManager {
     pub fn load_icon(path: &Path) -> anyhow::Result<Icon> {
         let (icon_rgba, icon_width, icon_height) = {
@@ -31,23 +30,44 @@ impl TrayManager {
         Ok(Icon::from_rgba(icon_rgba, icon_width, icon_height)?)
     }
 
-    pub fn setup(&mut self) -> anyhow::Result<()> {
-        let tray_menu = Menu::new();
+    pub fn setup(&mut self, config: &NetworkConfig) -> anyhow::Result<()> {
+        println!("Setting up tray icon...");
+        let tray_menu = tray_menu::build_menu(config)?;
+        println!("Menu built successfully");
 
-        // Add interfaces
-        tray_menu.append(&MenuItem::new("Interfaces:", false, None))?;
-        let interfaces = InterfaceDetector::detect_all()?;
-        for interface in interfaces {
-            let label = format!("  {} ({})", interface.name, interface.ip_address);
-            tray_menu.append(&MenuItem::new(&label, true, None))?;
+        // Get the executable path and construct paths relative to it
+        let exe_path = std::env::current_exe()?;
+        let exe_dir = exe_path.parent().unwrap();
+
+        // Try multiple possible icon paths (for both dev and app bundle)
+        // For menu bar, we want a small icon (22x22 or 16x16)
+        let mut possible_paths = vec![];
+
+        // For .app bundle: Contents/MacOS/../Resources/icon_menubar.png
+        if let Ok(bundle_icon) = exe_dir.join("../Resources/icon_menubar.png").canonicalize() {
+            possible_paths.push(bundle_icon);
         }
 
-        tray_menu.append(&PredefinedMenuItem::separator())?;
-        tray_menu.append(&MenuItem::new("Settings...", true, None))?;
-        tray_menu.append(&PredefinedMenuItem::quit(None))?;
+        // Fallback to regular icon
+        if let Ok(bundle_icon) = exe_dir.join("../Resources/icon.png").canonicalize() {
+            possible_paths.push(bundle_icon);
+        }
 
-        let icon_path = Path::new("resources/icon.png");
-        let icon = Self::load_icon(icon_path).ok(); // Fallback to no icon if loading fails
+        // For development: from project root
+        possible_paths.push(Path::new("resources/icon_menubar.png").to_path_buf());
+        possible_paths.push(Path::new("resources/icon.png").to_path_buf());
+        possible_paths.push(Path::new("./resources/icon.png").to_path_buf());
+
+        let icon = possible_paths.iter().find_map(|path| {
+            println!("Trying icon path: {}", path.display());
+            Self::load_icon(path).ok()
+        });
+
+        if icon.is_some() {
+            println!("Icon loaded successfully");
+        } else {
+            println!("Warning: Could not load icon from any path, using default");
+        }
 
         let mut builder = TrayIconBuilder::new()
             .with_menu(Box::new(tray_menu))
@@ -58,7 +78,16 @@ impl TrayManager {
         }
 
         self.tray_icon = Some(builder.build()?);
+        println!("Tray icon created successfully");
 
+        Ok(())
+    }
+
+    pub fn update_menu(&mut self, config: &NetworkConfig) -> anyhow::Result<()> {
+        if let Some(tray_icon) = &mut self.tray_icon {
+            let new_menu = tray_menu::build_menu(config)?;
+            tray_icon.set_menu(Some(Box::new(new_menu)));
+        }
         Ok(())
     }
 }

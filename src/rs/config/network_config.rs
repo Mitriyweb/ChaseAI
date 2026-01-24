@@ -13,9 +13,31 @@ pub struct NetworkConfig {
 
 impl NetworkConfig {
     pub fn new() -> Self {
+        // Create default port bindings for loopback interface
+        let loopback_interface = crate::network::interface_detector::NetworkInterface {
+            name: "lo0".to_string(),
+            ip_address: "127.0.0.1".parse().unwrap(),
+            interface_type: InterfaceType::Loopback,
+        };
+
+        let default_bindings = vec![
+            PortBinding {
+                port: 8888,
+                interface: loopback_interface.clone(),
+                role: crate::network::port_config::PortRole::Instruction,
+                enabled: false, // Disabled by default for safety
+            },
+            PortBinding {
+                port: 9999,
+                interface: loopback_interface,
+                role: crate::network::port_config::PortRole::Verification,
+                enabled: false,
+            },
+        ];
+
         Self {
             default_interface: InterfaceType::Loopback,
-            port_bindings: Vec::new(),
+            port_bindings: default_bindings,
         }
     }
 
@@ -104,6 +126,8 @@ mod tests {
     #[test]
     fn test_save_load_config() -> Result<()> {
         let mut config = NetworkConfig::new();
+        // Clear default ports for this test
+        config.port_bindings.clear();
         config.default_interface = InterfaceType::Lan;
         config.port_bindings.push(PortBinding {
             port: 4000,
@@ -130,6 +154,9 @@ mod tests {
     fn test_default_config() {
         let config = NetworkConfig::default();
         assert_eq!(config.default_interface, InterfaceType::Loopback);
-        assert!(config.port_bindings.is_empty());
+        // Default config now includes 2 ports (8888 and 9999)
+        assert_eq!(config.port_bindings.len(), 2);
+        assert_eq!(config.port_bindings[0].port, 8888);
+        assert_eq!(config.port_bindings[1].port, 9999);
     }
 }
