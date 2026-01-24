@@ -10,8 +10,9 @@ real system.
 ## Tech Stack
 
 - **Languages**: Rust (Core), TypeScript (Tooling)
-- **UI**: Web-based (WASM glue)
-- **Tooling**: Cargo, npm, OpenSpec, pre-commit
+- **UI**: Native system tray (cross-platform)
+- **Runtime**: Bun (JavaScript/TypeScript tooling)
+- **Tooling**: Cargo, Bun, OpenSpec, pre-commit
 
 ## Project Conventions
 

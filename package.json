@@ -3,21 +3,21 @@
     "version": "0.1.0",
     "description": "The control plane for multi-agent AI development.",
     "scripts": {
-        "lint": "npm run lint:rust && npm run lint:md",
+        "lint": "bun run lint:rust && bun run lint:md",
         "lint:rust": "cargo clippy --all-targets --all-features -- -D warnings",
         "lint:md": "markdownlint-cli2 \"**/*.md\"",
         "fix:md": "markdownlint-cli2 --fix \"**/*.md\"",
         "knip": "knip",
-        "test": "npm run test:rust",
+        "test": "bun run test:rust",
         "test:rust": "cargo test",
-        "start": "npm run start:app",
+        "start": "bun run start:app",
         "start:rust": "cargo run",
         "start:prod": "./run-app.sh",
         "start:app": "./run-app.sh",
-        "build": "npm run build:app",
+        "build": "bun run build:app",
         "build:rust": "cargo build --release",
         "build:app": "./build-macos-app.sh",
-        "audit": "npm audit",
+        "audit": "bun audit",
         "prepare": "prek install"
     },
     "devDependencies": {
@@ -26,6 +26,6 @@
         "@j178/prek": "0.2.30"
     },
     "engines": {
-        "node": ">=25.1.0"
+        "bun": ">=1.0.0"
     }
 }

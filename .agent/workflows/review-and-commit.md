@@ -71,13 +71,12 @@ For each changed file, the agent:
 Run automated checks:
 
 ```bash
-npm run lint
-npm run test
+bun run lint
+bun test
 ```
 
 **Required Checks:**
 
-- [ ] ESLint passes
 - [ ] Markdownlint passes
 - [ ] Cargo clippy passes (no warnings)
 - [ ] All Rust tests pass

@@ -19,37 +19,37 @@ repos:
         pass_filenames: false
       - id: markdownlint
         name: markdownlint
-        entry: npm run lint:md
+        entry: bun run lint:md
         language: system
         files: \.md$
         pass_filenames: false
       - id: knip
         name: knip
-        entry: npm run knip
+        entry: bun run knip
         language: system
         pass_filenames: false
         always_run: true
       - id: clippy
         name: clippy
-        entry: npm run lint:rust
+        entry: bun run lint:rust
         language: system
         files: \.rs$
         pass_filenames: false
       - id: rust-test
         name: rust-test
-        entry: npm run test:rust
+        entry: bun run test:rust
         language: system
         files: \.rs$
         pass_filenames: false
       - id: build
         name: build
-        entry: npm run build
+        entry: bun run build
         language: system
         files: \.rs$
         pass_filenames: false
-      - id: npm-audit
-        name: npm audit
-        entry: bash -c 'npm audit --audit-level=high'
+      - id: bun-audit
+        name: bun audit
+        entry: bash -c 'bun audit'
         language: system
         pass_filenames: false
         always_run: true

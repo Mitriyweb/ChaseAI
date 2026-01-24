@@ -17,10 +17,10 @@ ChaseAI is a local tray-based orchestrator that turns an AI agent from a
 
 ```bash
 # Build the application
-npm run build
+bun run build
 
 # Run the application
-npm start
+bun start
 ```
 
 The ChaseAI icon will appear in your system tray (macOS menu bar, Windows system tray, Linux tray).
@@ -68,7 +68,7 @@ role = "Verification"
 ### Prerequisites
 
 - Rust 1.70+
-- Node.js 25.1.0+
+- Bun 1.0+
 - Platform-specific requirements:
   - macOS: Xcode Command Line Tools
   - Windows: Visual Studio Build Tools
@@ -90,13 +90,13 @@ src/rs/
 ### Running Tests
 
 ```bash
-npm test
+bun test
 ```
 
 ### Linting
 
 ```bash
-npm run lint
+bun run lint
 ```
 
 ## Architecture
