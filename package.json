@@ -1,6 +1,5 @@
 {
     "name": "chase-ai",
-    "version": "0.1.0",
     "description": "The control plane for multi-agent AI development.",
     "scripts": {
         "lint": "bun run lint:rust && bun run lint:md",
@@ -12,12 +11,13 @@
         "test:rust": "cargo test",
         "start": "bun run start:app",
         "start:rust": "cargo run",
-        "start:app": "./run-app.sh",
+        "start:app": "./scripts/macos/run-app.sh",
         "build": "bun run build:app",
         "build:rust": "cargo build --release",
-        "build:app": "./build-macos-app.sh",
+        "build:app": "./scripts/macos/build-macos-app.sh",
         "audit": "bun audit",
-        "prepare": "prek install || true"
+        "prepare": "prek install || true",
+        "bump": "bash scripts/bump-version.sh"
     },
     "devDependencies": {
         "knip": "5.76.3",

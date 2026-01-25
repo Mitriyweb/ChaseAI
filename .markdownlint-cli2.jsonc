@@ -4,8 +4,6 @@
     },
     "ignores": [
         "node_modules",
-        "openspec/changes/archive",
-        ".agent/**",
-        "openspec/AGENTS.md"
+        "openspec/changes/archive"
     ]
 }

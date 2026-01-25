@@ -1,0 +1,213 @@
+name: macOS Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  check-version:
+    name: Verify Version Tag
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.extract-version.outputs.version }}
+      file-version: ${{ steps.check-file.outputs.version }}
+      version-match: ${{ steps.compare-versions.outputs.match }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: extract-version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Tag version: $VERSION"
+
+      - name: Check .version file
+        id: check-file
+        run: |
+          FILE_VERSION=$(cat .version | tr -d '[:space:]')
+          echo "version=$FILE_VERSION" >> $GITHUB_OUTPUT
+          echo ".version file: $FILE_VERSION"
+
+      - name: Compare versions
+        id: compare-versions
+        run: |
+          TAG_VERSION=${GITHUB_REF#refs/tags/v}
+          FILE_VERSION=$(cat .version | tr -d '[:space:]')
+          if [ "$TAG_VERSION" = "$FILE_VERSION" ]; then
+            echo "match=true" >> $GITHUB_OUTPUT
+            echo "✓ Versions match: $TAG_VERSION"
+          else
+            echo "match=false" >> $GITHUB_OUTPUT
+            echo "✗ Version mismatch! Tag: $TAG_VERSION, .version: $FILE_VERSION"
+            exit 1
+          fi
+
+  build-macos-release:
+    name: Build macOS Release
+    needs: check-version
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-apple-darwin,aarch64-apple-darwin
+
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: ${{ runner.os }}-cargo-
+
+      - name: Build universal binary
+        run: bash scripts/macos/build-universal.sh
+
+      - name: Create app bundle
+        run: bash build-macos-app.sh
+
+      - name: Sign application
+        env:
+          MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
+          MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+        run: bash scripts/macos/sign-app.sh
+
+      - name: Create DMG
+        run: bash scripts/macos/create-dmg.sh
+
+      - name: Notarize DMG
+        env:
+          NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
+          NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
+        run: bash scripts/macos/notarize-app.sh
+
+      - name: Generate checksums
+        run: |
+          cd target/release
+          shasum -a 256 *.dmg > checksums.sha256
+          cat checksums.sha256
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release-artifacts
+          path: |
+            target/release/*.dmg
+            target/release/*.sha256
+          retention-days: 90
+
+  create-github-release:
+    name: Create GitHub Release
+    needs: [check-version, build-macos-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-release-artifacts
+          path: ./release-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ needs.check-version.outputs.version }}
+          name: Release v${{ needs.check-version.outputs.version }}
+          draft: false
+          prerelease: false
+          files: |
+            release-artifacts/*.dmg
+            release-artifacts/*.sha256
+          body: |
+            # ChaseAI v${{ needs.check-version.outputs.version }}
+
+            ## macOS Distribution
+
+            ### DMG Installer
+            - Download `chaseai-${{ needs.check-version.outputs.version }}-macos.dmg`
+            - Mount the DMG and drag ChaseAI to Applications folder
+            - Verify checksum: `shasum -a 256 -c checksums.sha256`
+
+            ### Homebrew Installation
+            ```bash
+            brew tap chaseai/chaseai
+            brew install chaseai
+            ```
+
+            ### Verify Installation
+            ```bash
+            chaseai --version
+            ```
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  update-homebrew-formula:
+    name: Update Homebrew Formula
+    needs: [check-version, create-github-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-release-artifacts
+          path: ./release-artifacts
+
+      - name: Calculate DMG checksum
+        id: checksum
+        run: |
+          CHECKSUM=$(shasum -a 256 release-artifacts/*.dmg | awk '{print $1}')
+          echo "sha256=$CHECKSUM" >> $GITHUB_OUTPUT
+          echo "DMG SHA256: $CHECKSUM"
+
+      - name: Checkout Homebrew tap
+        uses: actions/checkout@v4
+        with:
+          repository: chaseai/homebrew-chaseai
+          token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          path: homebrew-tap
+
+      - name: Update formula
+        run: |
+          VERSION=${{ needs.check-version.outputs.version }}
+          SHA256=${{ steps.checksum.outputs.sha256 }}
+
+          cat > homebrew-tap/Formula/chaseai.rb << 'EOF'
+          class Chaseai < Formula
+            desc "Local control and orchestration system for AI agents"
+            homepage "https://github.com/chaseai/chaseai"
+            url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chaseai-#{version}-macos.dmg"
+            sha256 "${{ steps.checksum.outputs.sha256 }}"
+            version "${{ needs.check-version.outputs.version }}"
+
+            def install
+              app_path = "ChaseAI.app"
+              prefix.install app_path
+              bin.write_exec_script "#{prefix}/#{app_path}/Contents/MacOS/chase-ai"
+            end
+
+            test do
+              system "#{bin}/chase-ai", "--version"
+            end
+          end
+          EOF
+
+      - name: Commit and push formula update
+        working-directory: homebrew-tap
+        run: |
+          git config user.name "ChaseAI Release Bot"
+          git config user.email "release@chaseai.local"
+          git add Formula/chaseai.rb
+          git commit -m "chore: update chaseai formula to v${{ needs.check-version.outputs.version }}"
+          git push origin main
+        continue-on-error: true
