@@ -17,5 +17,6 @@ fn test_app_new() {
     assert!(!app.version.is_empty());
 
     // Check that components are initialized
-    assert!(app.config.port_bindings.is_empty() || !app.config.port_bindings.is_empty()); // Just check it exists
+    assert!(app.config.port_bindings.is_empty() || !app.config.port_bindings.is_empty());
+    // Just check it exists
 }

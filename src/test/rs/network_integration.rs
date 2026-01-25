@@ -69,11 +69,19 @@ fn test_network_config_persistence_multiple() -> anyhow::Result<()> {
     // Verify
     assert_eq!(loaded_config.port_bindings.len(), 2);
 
-    let b1 = loaded_config.port_bindings.iter().find(|b| b.port == 8000).unwrap();
+    let b1 = loaded_config
+        .port_bindings
+        .iter()
+        .find(|b| b.port == 8000)
+        .unwrap();
     assert_eq!(b1.role, PortRole::Instruction);
     assert!(b1.enabled);
 
-    let b2 = loaded_config.port_bindings.iter().find(|b| b.port == 9000).unwrap();
+    let b2 = loaded_config
+        .port_bindings
+        .iter()
+        .find(|b| b.port == 9000)
+        .unwrap();
     assert_eq!(b2.role, PortRole::Verification);
     assert!(!b2.enabled);
 
