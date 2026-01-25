@@ -17,7 +17,7 @@
         "build:rust": "cargo build --release",
         "build:app": "./build-macos-app.sh",
         "audit": "bun audit",
-        "prepare": "prek install"
+        "prepare": "prek install || true"
     },
     "devDependencies": {
         "knip": "5.76.3",

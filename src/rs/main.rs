@@ -1,9 +1,8 @@
-use tray_icon::menu::MenuEvent;
-
 #[cfg(target_os = "macos")]
 #[allow(unexpected_cfgs)]
 #[allow(clippy::all)]
 fn main() -> anyhow::Result<()> {
+    use tray_icon::menu::MenuEvent;
     use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicy};
     use cocoa::base::{id, nil};
     use cocoa::foundation::NSString;

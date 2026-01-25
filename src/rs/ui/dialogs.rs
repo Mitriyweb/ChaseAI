@@ -1,4 +1,5 @@
 use crate::network::port_config::PortRole;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 
 pub struct PortConfig {
