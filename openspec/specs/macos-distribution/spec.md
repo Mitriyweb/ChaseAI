@@ -167,3 +167,81 @@ The system MUST manage and publish release artifacts correctly.
   - Provide SHA256 checksums for verification
   - Document how to verify checksums
   - Allow users to confirm download integrity
+
+## Implementation Status
+
+### Completed Components
+
+**Build Scripts:**
+
+- `scripts/macos/build-universal.sh` - Builds universal binary for x86_64 and aarch64
+- `scripts/macos/create-dmg.sh` - Creates DMG installer with checksums
+- `scripts/macos/sign-app.sh` - Code signs the application bundle
+- `scripts/macos/notarize-app.sh` - Notarizes DMG with Apple
+- `scripts/macos/generate-homebrew-formula.sh` - Generates Homebrew formula
+- `scripts/macos/update-homebrew-formula.sh` - Updates formula on releases
+
+**CI/CD Workflows:**
+
+- `.github/workflows/main.yml` - macOS build job integrated
+- `.github/workflows/macos-release.yml` - Release workflow with version gating (skips 0.1.0)
+
+**Homebrew Integration:**
+
+- `homebrew-chaseai/` - Tap repository structure
+- `homebrew-chaseai/Formula/chaseai.rb` - Homebrew formula template
+
+**Documentation:**
+
+- `docs/installation-macos.md` - Complete installation guide
+- `docs/macos-release-checklist.md` - Release management checklist
+
+### GitHub Secrets Required
+
+To enable code signing and notarization:
+
+1. `MACOS_CERTIFICATE` - Base64-encoded .p12 certificate file
+2. `MACOS_CERTIFICATE_PWD` - Certificate password
+3. `NOTARIZATION_USERNAME` - Apple ID email for notarization
+4. `NOTARIZATION_PASSWORD` - App-specific password for notarization
+5. `HOMEBREW_TAP_TOKEN` - GitHub token for updating Homebrew tap (optional)
+
+### Manual Setup Required
+
+Before first release:
+
+1. Obtain Apple Developer Account ($99/year)
+2. Create App ID for ChaseAI
+3. Generate Code Signing Certificate (Developer ID Application)
+4. Create App-Specific Password for notarization
+5. Export Certificate as base64-encoded .p12 file
+6. Configure GitHub Secrets with credentials
+7. Create Homebrew Tap Repository (chaseai/homebrew-chaseai)
+
+### Testing
+
+Local testing commands:
+
+```bash
+# Build universal binary
+bash scripts/macos/build-universal.sh
+
+# Create app bundle
+bash scripts/macos/build-macos-app.sh
+
+# Create DMG (without signing/notarization)
+bash scripts/macos/create-dmg.sh
+
+# Test DMG
+hdiutil attach target/release/chase-ai-*.dmg
+# Verify app launches
+hdiutil detach /Volumes/ChaseAI
+```
+
+### Future Enhancements
+
+- Sparkle framework for automatic updates
+- Homebrew core submission
+- GPG signing for releases
+- Staged rollout via beta tap
+- Analytics for download tracking

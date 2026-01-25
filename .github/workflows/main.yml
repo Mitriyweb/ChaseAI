@@ -20,8 +20,9 @@ jobs:
           sudo apt-get install -y libgtk-3-dev libayatana-appindicator3-dev libxdo-dev
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.93.0
           components: clippy, rustfmt
 
       - name: Cache cargo
@@ -62,8 +63,8 @@ jobs:
       - name: Run build
         run: bun run build
 
-      - name: Knip
-        run: bun run knip
+      - name: Check unused dependencies
+        run: cargo +nightly udeps --all-targets
 
   build-macos:
     name: Build macOS DMG
@@ -72,8 +73,9 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.93.0
           targets: x86_64-apple-darwin,aarch64-apple-darwin
 
       - name: Cache cargo

@@ -18,6 +18,21 @@ DMG_NAME="${BINARY_NAME}-${VERSION}-macos.dmg"
 DMG_PATH="${RELEASE_DIR}/${DMG_NAME}"
 TEMP_DMG_DIR="${RELEASE_DIR}/dmg-temp"
 
+# Function to create DMG using hdiutil (fallback)
+create_dmg_hdiutil() {
+  # Create a temporary DMG
+  TEMP_DMG="${RELEASE_DIR}/temp-${BINARY_NAME}.dmg"
+
+  echo "🎨 Creating DMG with hdiutil..."
+  hdiutil create -volname "${APP_NAME}" \
+    -srcfolder "${TEMP_DMG_DIR}" \
+    -ov -format UDZO \
+    "${TEMP_DMG}"
+
+  # Move to final location
+  mv "${TEMP_DMG}" "${DMG_PATH}"
+}
+
 # Verify app bundle exists
 if [ ! -d "${APP_BUNDLE}" ]; then
   echo "❌ Error: App bundle not found at ${APP_BUNDLE}"
@@ -57,21 +72,6 @@ else
   echo "⚠️  create-dmg not found, using hdiutil..."
   create_dmg_hdiutil
 fi
-
-# Function to create DMG using hdiutil (fallback)
-create_dmg_hdiutil() {
-  # Create a temporary DMG
-  TEMP_DMG="${RELEASE_DIR}/temp-${BINARY_NAME}.dmg"
-
-  echo "🎨 Creating DMG with hdiutil..."
-  hdiutil create -volname "${APP_NAME}" \
-    -srcfolder "${TEMP_DMG_DIR}" \
-    -ov -format UDZO \
-    "${TEMP_DMG}"
-
-  # Move to final location
-  mv "${TEMP_DMG}" "${DMG_PATH}"
-}
 
 # Verify DMG was created
 if [ ! -f "${DMG_PATH}" ]; then

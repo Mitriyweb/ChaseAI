@@ -13,6 +13,7 @@ jobs:
       version: ${{ steps.extract-version.outputs.version }}
       file-version: ${{ steps.check-file.outputs.version }}
       version-match: ${{ steps.compare-versions.outputs.match }}
+      should-release: ${{ steps.check-release.outputs.should-release }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,17 +45,32 @@ jobs:
             exit 1
           fi
 
+      - name: Check if should release
+        id: check-release
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          if [ "$VERSION" = "0.1.0" ]; then
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "⊘ Skipping release for version 0.1.0 (development version)"
+          else
+            echo "should-release=true" >> $GITHUB_OUTPUT
+            echo "✓ Will proceed with release for version $VERSION"
+          fi
+
   build-macos-release:
     name: Build macOS Release
     needs: check-version
+    if: needs.check-version.outputs.should-release == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
 
       - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
+        uses: dtolnay/rust-toolchain@master
         with:
+          toolchain: 1.93.0
           targets: x86_64-apple-darwin,aarch64-apple-darwin
+          components: rustfmt
 
       - name: Cache cargo
         uses: actions/cache@v4
@@ -107,6 +123,7 @@ jobs:
   create-github-release:
     name: Create GitHub Release
     needs: [check-version, build-macos-release]
+    if: needs.check-version.outputs.should-release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -153,6 +170,7 @@ jobs:
   update-homebrew-formula:
     name: Update Homebrew Formula
     needs: [check-version, create-github-release]
+    if: needs.check-version.outputs.should-release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

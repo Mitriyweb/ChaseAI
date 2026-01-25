@@ -67,7 +67,7 @@ role = "Verification"
 
 ### Prerequisites
 
-- Rust 1.70+
+- Rust 1.93.0 (see `rust-toolchain.toml`)
 - Bun 1.0+
 - Platform-specific requirements:
   - macOS: Xcode Command Line Tools
@@ -80,12 +80,27 @@ role = "Verification"
 src/rs/
   ├── main.rs           # Application entry point
   ├── app.rs            # Core application logic
+  ├── platform/         # Platform-specific implementations
+  │   ├── mod.rs        # Platform module selector
+  │   ├── macos.rs      # macOS implementation ✅
+  │   ├── windows.rs    # Windows implementation (stub)
+  │   └── linux.rs      # Linux implementation (stub)
   ├── config/           # Configuration management
   ├── network/          # Network interface detection
   ├── server/           # HTTP server pool
   ├── instruction/      # Instruction context management
   └── ui/               # Tray UI components
 ```
+
+### Platform Architecture
+
+ChaseAI uses a modular platform abstraction layer that allows easy addition of new operating systems:
+
+- **macOS** - Fully implemented with native tray icon and event loop
+- **Windows** - Ready for implementation
+- **Linux** - Ready for implementation
+
+Each platform has its own module in `src/rs/platform/` with a `run()` function that handles platform-specific initialization and event loop management.
 
 ### Running Tests
 

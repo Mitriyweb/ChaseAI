@@ -73,3 +73,39 @@ It MUST have a `// SAFETY: <reason>` comment.
 - **Unit Tests**: MUST be in `mod tests` with `#[cfg(test)]` at the bottom of the file.
 - **Integration Tests**: In `tests/` directory.
 - **Doc Tests**: Required for public APIs.
+
+## Compiler & Linter Warnings
+
+### ⚠️ CRITICAL: Fix warnings, never suppress them
+
+**NEVER use `#[allow(...)]` to hide compiler or clippy warnings.**
+**NEVER use `[lints]` in `Cargo.toml` to suppress warnings globally.**
+
+Warnings MUST be fixed at the source:
+
+```rust
+# ❌ Wrong - hiding the problem
+#![allow(unexpected_cfgs)]
+#[allow(dead_code)]
+fn unused_function() {}
+
+# ❌ Wrong - suppressing in Cargo.toml
+[lints.rust]
+unexpected_cfgs = "allow"
+
+# ✅ Correct - fix the root cause
+// Update dependencies, fix code, or remove unused code
+```
+
+**Allowed exceptions** (only with explicit justification):
+
+- `#[allow(clippy::all)]` - ONLY for generated code or FFI bindings
+- `#[allow(unsafe_code)]` - ONLY with `// SAFETY: <reason>` comment
+- Platform-specific code with `#[cfg(...)]` - acceptable
+
+**Process for warnings:**
+
+1. Understand the warning
+2. Fix the underlying issue (update deps, refactor code, remove unused items)
+3. If truly unavoidable, document WHY in a comment
+4. Get code review approval before suppressing

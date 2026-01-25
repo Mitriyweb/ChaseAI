@@ -6,7 +6,7 @@
         "lint:rust": "cargo clippy --all-targets --all-features -- -D warnings",
         "lint:md": "markdownlint-cli2 \"**/*.md\"",
         "fix:md": "markdownlint-cli2 --fix \"**/*.md\"",
-        "knip": "knip",
+        "check:deps": "cargo +nightly udeps --all-targets",
         "test": "bun run test:rust",
         "test:rust": "cargo test",
         "start": "bun run start:app",
@@ -20,7 +20,6 @@
         "bump": "bash scripts/bump-version.sh"
     },
     "devDependencies": {
-        "knip": "5.76.3",
         "markdownlint-cli2": "0.20.0",
         "@j178/prek": "0.2.30"
     },

@@ -137,3 +137,21 @@ echo "4. Push: git push origin main && git push origin v$NEW_VERSION"
 echo ""
 echo -e "${YELLOW}Preview of CHANGELOG.md:${NC}"
 head -20 CHANGELOG.md
+
+# Auto-commit and tag
+echo ""
+echo -e "${BLUE}Committing and tagging...${NC}"
+
+git add .version Cargo.toml CHANGELOG.md
+git commit -m "chore: bump version to $NEW_VERSION"
+
+git tag "v$NEW_VERSION"
+echo -e "${GREEN}✓ Created tag v$NEW_VERSION${NC}"
+
+# Push changes and tag
+echo -e "${BLUE}Pushing to remote...${NC}"
+git push origin main
+git push origin "v$NEW_VERSION"
+
+echo -e "${GREEN}✓ All done! Release v$NEW_VERSION is ready.${NC}"
+echo -e "${BLUE}GitHub Actions will automatically create a release.${NC}"

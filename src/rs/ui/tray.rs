@@ -40,23 +40,26 @@ impl TrayManager {
         let exe_dir = exe_path.parent().unwrap();
 
         // Try multiple possible icon paths (for both dev and app bundle)
-        // For menu bar, we want a small icon (22x22 or 16x16)
+        // For menu bar, we want a larger icon that scales well (64x64 or higher)
         let mut possible_paths = vec![];
 
-        // For .app bundle: Contents/MacOS/../Resources/icon_menubar.png
-        if let Ok(bundle_icon) = exe_dir.join("../Resources/icon_menubar.png").canonicalize() {
+        // For .app bundle: Contents/MacOS/../Resources/icon_menubar_64.png
+        if let Ok(bundle_icon) = exe_dir
+            .join("../Resources/icon_menubar_64.png")
+            .canonicalize()
+        {
             possible_paths.push(bundle_icon);
         }
 
         // Fallback to regular icon
-        if let Ok(bundle_icon) = exe_dir.join("../Resources/icon.png").canonicalize() {
+        if let Ok(bundle_icon) = exe_dir.join("../Resources/icon_menubar.png").canonicalize() {
             possible_paths.push(bundle_icon);
         }
 
         // For development: from project root
+        possible_paths.push(Path::new("resources/icon_menubar_64.png").to_path_buf());
         possible_paths.push(Path::new("resources/icon_menubar.png").to_path_buf());
-        possible_paths.push(Path::new("resources/icon.png").to_path_buf());
-        possible_paths.push(Path::new("./resources/icon.png").to_path_buf());
+        possible_paths.push(Path::new("./resources/icon_menubar.png").to_path_buf());
 
         let icon = possible_paths.iter().find_map(|path| {
             println!("Trying icon path: {}", path.display());

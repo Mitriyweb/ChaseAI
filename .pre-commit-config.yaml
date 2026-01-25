@@ -23,15 +23,15 @@ repos:
         language: system
         files: \.md$
         pass_filenames: false
-      - id: knip
-        name: knip
-        entry: bun run knip
-        language: system
-        pass_filenames: false
-        always_run: true
       - id: clippy
         name: clippy
         entry: bun run lint:rust
+        language: system
+        files: \.rs$
+        pass_filenames: false
+      - id: udeps
+        name: udeps
+        entry: cargo +nightly udeps --all-targets
         language: system
         files: \.rs$
         pass_filenames: false

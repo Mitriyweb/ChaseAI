@@ -17,7 +17,7 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
     } else {
         "ChaseAI: Stopped"
     };
-    menu.append(&MenuItem::new(status_text, false, None))?;
+    menu.append(&MenuItem::new(status_text, true, None))?;
 
     // Show current IP
     let ip = config
@@ -28,7 +28,7 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     let interface_type = &config.default_interface;
     let start_text = format!("IP: {} ({:?})", ip, interface_type);
-    menu.append(&MenuItem::new(&start_text, false, None))?;
+    menu.append(&MenuItem::new(&start_text, true, None))?;
 
     menu.append(&PredefinedMenuItem::separator())?;
 
@@ -56,9 +56,9 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
     menu.append(&PredefinedMenuItem::separator())?;
 
     if config.port_bindings.is_empty() {
-        menu.append(&MenuItem::new("No ports configured", false, None))?;
+        menu.append(&MenuItem::new("No ports configured", true, None))?;
     } else {
-        menu.append(&MenuItem::new("Ports:", false, None))?;
+        menu.append(&MenuItem::new("Ports:", true, None))?;
 
         for binding in &config.port_bindings {
             // Show status indicator in the port label
