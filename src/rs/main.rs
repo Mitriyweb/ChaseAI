@@ -1,5 +1,3 @@
-use tray_icon::menu::MenuEvent;
-
 #[cfg(target_os = "macos")]
 #[allow(unexpected_cfgs)]
 #[allow(clippy::all)]
@@ -11,6 +9,7 @@ fn main() -> anyhow::Result<()> {
     use objc::runtime::{Object, Sel};
     use objc::{class, msg_send, sel, sel_impl};
     use std::sync::Once;
+    use tray_icon::menu::MenuEvent;
 
     println!("Starting ChaseAI...");
 

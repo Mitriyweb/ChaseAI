@@ -4,6 +4,12 @@
 echo "Building release binary..."
 cargo build --release
 
+# Skip macOS-specific app bundle creation on non-macOS platforms
+if [[ "$OSTYPE" != "darwin"* ]]; then
+    echo "Skipping macOS app bundle creation on non-macOS platform ($OSTYPE)"
+    exit 0
+fi
+
 # Create app bundle structure
 APP_NAME="ChaseAI"
 APP_DIR="target/release/${APP_NAME}.app"
