@@ -2,7 +2,6 @@
 #[allow(unexpected_cfgs)]
 #[allow(clippy::all)]
 fn main() -> anyhow::Result<()> {
-    use tray_icon::menu::MenuEvent;
     use cocoa::appkit::{NSApp, NSApplication, NSApplicationActivationPolicy};
     use cocoa::base::{id, nil};
     use cocoa::foundation::NSString;
@@ -10,6 +9,7 @@ fn main() -> anyhow::Result<()> {
     use objc::runtime::{Object, Sel};
     use objc::{class, msg_send, sel, sel_impl};
     use std::sync::Once;
+    use tray_icon::menu::MenuEvent;
 
     println!("Starting ChaseAI...");
 
