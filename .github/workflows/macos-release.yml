@@ -1,9 +1,15 @@
-name: macOS Release
+# DISABLED: This workflow is currently disabled pending certificate setup
+# name: macOS Release
+#
+# on:
+#   push:
+#     tags:
+#       - 'v*.*.*'
+
+name: macOS Release (DISABLED)
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_dispatch:  # Only manual trigger, not automatic
 
 jobs:
   check-version:
