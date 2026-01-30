@@ -173,6 +173,9 @@ impl App {
                     }
                 }
             }
+        } else if id == "cmd:download_config" {
+            println!("Download config requested");
+            self.download_config();
         } else {
             println!("Unknown menu event: {}", id);
         }
@@ -262,6 +265,69 @@ impl App {
         } else {
             println!("Add port cancelled");
         }
+    }
+
+    fn download_config(&self) {
+        use std::fs;
+        use chrono::Local;
+
+        println!("=== Starting download_config ===");
+
+        // Generate configuration as JSON
+        println!("Generating configuration JSON...");
+        let config_json = match crate::config::generator::ConfigurationGenerator::generate_json(&self.config) {
+            Ok(json) => {
+                println!("Configuration generated successfully");
+                json
+            },
+            Err(e) => {
+                eprintln!("Failed to generate configuration: {}", e);
+                return;
+            }
+        };
+
+        // Create Downloads directory path
+        println!("Determining Downloads directory...");
+        let downloads_dir = if let Some(home) = std::env::var_os("HOME") {
+            let mut path = std::path::PathBuf::from(home);
+            path.push("Downloads");
+            path
+        } else {
+            eprintln!("Could not determine Downloads directory");
+            return;
+        };
+
+        println!("Downloads directory: {:?}", downloads_dir);
+
+        // Ensure Downloads directory exists
+        if let Err(e) = fs::create_dir_all(&downloads_dir) {
+            eprintln!("Failed to create Downloads directory: {}", e);
+            return;
+        }
+
+        // Generate timestamped filename
+        let timestamp = Local::now().format("%Y%m%d_%H%M%S");
+        let filename = format!("chaseai_config_{}.json", timestamp);
+        let file_path = downloads_dir.join(&filename);
+
+        println!("Writing to file: {:?}", file_path);
+
+        // Write configuration to file
+        let json_string = match serde_json::to_string_pretty(&config_json) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Failed to serialize configuration: {}", e);
+                return;
+            }
+        };
+
+        if let Err(e) = fs::write(&file_path, json_string) {
+            eprintln!("Failed to write configuration file: {}", e);
+            return;
+        }
+
+        println!("✓ Configuration downloaded successfully to: {:?}", file_path);
+        println!("=== download_config completed ===");
     }
 }
 

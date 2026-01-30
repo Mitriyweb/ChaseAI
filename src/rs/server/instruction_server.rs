@@ -1,20 +1,30 @@
 use crate::instruction::context::InstructionContext;
 use crate::instruction::manager::ContextManager;
 use crate::network::interface_detector::NetworkInterface;
+use crate::config::generator::ConfigurationGenerator;
+use crate::config::network_config::NetworkConfig;
 use axum::{
-    extract::{Extension, State},
+    extract::{Extension, State, Query},
     http::StatusCode,
     routing::get,
     Json, Router,
 };
+use serde::Deserialize;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use tokio::sync::broadcast;
+
+#[derive(Debug, Deserialize)]
+pub struct ConfigFormat {
+    #[serde(default)]
+    format: String,
+}
 
 pub struct InstructionServer {
     port: u16,
     interface: NetworkInterface,
     context_manager: Arc<Mutex<ContextManager>>,
+    network_config: Arc<Mutex<NetworkConfig>>,
     shutdown_tx: broadcast::Sender<()>,
 }
 
@@ -25,10 +35,28 @@ impl InstructionServer {
         context_manager: Arc<Mutex<ContextManager>>,
     ) -> Self {
         let (shutdown_tx, _) = broadcast::channel(1);
+        let network_config = Arc::new(Mutex::new(NetworkConfig::new()));
         Self {
             port,
             interface,
             context_manager,
+            network_config,
+            shutdown_tx,
+        }
+    }
+
+    pub fn with_config(
+        port: u16,
+        interface: NetworkInterface,
+        context_manager: Arc<Mutex<ContextManager>>,
+        network_config: Arc<Mutex<NetworkConfig>>,
+    ) -> Self {
+        let (shutdown_tx, _) = broadcast::channel(1);
+        Self {
+            port,
+            interface,
+            context_manager,
+            network_config,
             shutdown_tx,
         }
     }
@@ -65,8 +93,10 @@ impl InstructionServer {
     fn router(&self) -> Router {
         Router::new()
             .route("/context", get(get_context))
+            .route("/config", get(get_config))
             .route("/health", get(health_check))
             .layer(Extension(self.port))
+            .layer(Extension(self.network_config.clone()))
             .with_state(self.context_manager.clone())
     }
 }
@@ -89,6 +119,35 @@ async fn get_context(
 
 async fn health_check() -> StatusCode {
     StatusCode::OK
+}
+
+async fn get_config(
+    Extension(network_config): Extension<Arc<Mutex<NetworkConfig>>>,
+    Query(params): Query<ConfigFormat>,
+) -> Result<(StatusCode, String), StatusCode> {
+    let config = network_config
+        .lock()
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let format = params.format.to_lowercase();
+    match format.as_str() {
+        "yaml" => {
+            let yaml = ConfigurationGenerator::generate_yaml(&config)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok((StatusCode::OK, yaml))
+        }
+        "markdown" | "md" => {
+            let markdown = ConfigurationGenerator::generate_markdown(&config)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok((StatusCode::OK, markdown))
+        }
+        _ => {
+            // Default to JSON
+            let json = ConfigurationGenerator::generate_json(&config)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok((StatusCode::OK, json.to_string()))
+        }
+    }
 }
 
 #[cfg(test)]
@@ -168,6 +227,73 @@ mod tests {
         assert_eq!(ctx.system, "test_sys");
 
         // cleanup
+        server.stop().await.unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_config_endpoint_json() {
+        let port = 8086;
+        let interface = NetworkInterface {
+            name: "lo".to_string(),
+            ip_address: "127.0.0.1".parse().unwrap(),
+            interface_type: InterfaceType::Loopback,
+        };
+
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = ContextStorage::with_path(temp_dir.path().join("contexts.json"));
+        let manager = Arc::new(Mutex::new(
+            ContextManager::new_with_storage(storage).unwrap(),
+        ));
+
+        let mut config = crate::config::network_config::NetworkConfig::new();
+        config
+            .port_bindings
+            .push(crate::network::port_config::PortBinding {
+                port,
+                interface: interface.clone(),
+                role: crate::network::port_config::PortRole::Instruction,
+                enabled: true,
+            });
+
+        let network_config = Arc::new(Mutex::new(config));
+        let server = InstructionServer::with_config(port, interface, manager, network_config);
+        server.start().await.unwrap();
+
+        tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+        let client = reqwest::Client::new();
+
+        // Test JSON config (default)
+        let resp = client
+            .get(format!("http://127.0.0.1:{}/config", port))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.text().await.unwrap();
+        assert!(body.contains("\"version\""));
+        assert!(body.contains("ChaseAI"));
+
+        // Test YAML config
+        let resp = client
+            .get(format!("http://127.0.0.1:{}/config?format=yaml", port))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.text().await.unwrap();
+        assert!(body.contains("version:"));
+
+        // Test Markdown config
+        let resp = client
+            .get(format!("http://127.0.0.1:{}/config?format=markdown", port))
+            .send()
+            .await
+            .unwrap();
+        assert_eq!(resp.status(), StatusCode::OK);
+        let body = resp.text().await.unwrap();
+        assert!(body.contains("# ChaseAI Configuration"));
+
         server.stop().await.unwrap();
     }
 }

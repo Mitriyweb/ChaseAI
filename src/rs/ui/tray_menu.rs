@@ -117,6 +117,14 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     menu.append(&PredefinedMenuItem::separator())?;
 
+    // 4. Download Config Button
+    println!("Adding Download Config button to menu");
+    let download_config = MenuItem::with_id("cmd:download_config", "Download Config", true, None);
+    menu.append(&download_config)?;
+    println!("Download Config button added successfully");
+
+    menu.append(&PredefinedMenuItem::separator())?;
+
     // Add port management submenu
     let port_mgmt = Submenu::new("Manage Ports", true);
 

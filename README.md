@@ -63,7 +63,55 @@ enabled = false
 role = "Verification"
 ```
 
-## Development
+## AI Agent Integration
+
+ChaseAI provides a standardized way for AI agents to discover and integrate with the system.
+
+### Getting Started
+
+1. **Download Configuration** - Click "Download Config" in the ChaseAI tray menu
+2. **Parse Configuration** - Read the JSON/YAML configuration file
+3. **Retrieve Context** - Get instruction context via `GET /context`
+4. **Request Verification** - Submit actions for human approval via `POST /verify`
+5. **Poll Status** - Check verification status via `GET /verify/{id}`
+
+### Configuration Endpoint
+
+```bash
+# Get configuration (JSON by default)
+curl http://localhost:8090/config
+
+# Get configuration in YAML format
+curl http://localhost:8090/config?format=yaml
+
+# Get configuration as Markdown documentation
+curl http://localhost:8090/config?format=markdown
+```
+
+### Example: Request Verification
+
+```bash
+curl -X POST http://localhost:8090/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "action": "Deploy to production",
+    "reason": "User requested deployment",
+    "context": {"version": "1.2.3"}
+  }'
+```
+
+### Documentation
+
+- **[AI Integration Guide](./docs/ai-integration.md)** - Complete integration guide with examples
+- **[Verification Workflow](./docs/verification-workflow.md)** - Detailed verification workflow documentation
+- **[API Reference](./docs/api-reference.md)** - Complete API endpoint documentation
+
+### Supported Platforms
+
+- Python (Claude, GPT integration)
+- JavaScript/Node.js
+- Rust (local integration)
+- Any language with HTTP support
 
 ### Prerequisites
 
