@@ -1,3 +1,2 @@
-pub mod network_config;
-pub mod watcher;
 pub mod generator;
+pub mod network_config;

@@ -63,6 +63,12 @@ jobs:
       - name: Run build
         run: bun run build
 
+      - name: Setup Nightly Rust
+        uses: dtolnay/rust-toolchain@nightly
+
+      - name: Install cargo-udeps
+        run: cargo install cargo-udeps --locked
+
       - name: Check unused dependencies
         run: cargo +nightly udeps --all-targets
 

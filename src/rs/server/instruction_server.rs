@@ -1,10 +1,10 @@
+use crate::config::generator::ConfigurationGenerator;
+use crate::config::network_config::NetworkConfig;
 use crate::instruction::context::InstructionContext;
 use crate::instruction::manager::ContextManager;
 use crate::network::interface_detector::NetworkInterface;
-use crate::config::generator::ConfigurationGenerator;
-use crate::config::network_config::NetworkConfig;
 use axum::{
-    extract::{Extension, State, Query},
+    extract::{Extension, Query, State},
     http::StatusCode,
     routing::get,
     Json, Router,

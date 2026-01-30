@@ -268,23 +268,24 @@ impl App {
     }
 
     fn download_config(&self) {
-        use std::fs;
         use chrono::Local;
+        use std::fs;
 
         println!("=== Starting download_config ===");
 
         // Generate configuration as JSON
         println!("Generating configuration JSON...");
-        let config_json = match crate::config::generator::ConfigurationGenerator::generate_json(&self.config) {
-            Ok(json) => {
-                println!("Configuration generated successfully");
-                json
-            },
-            Err(e) => {
-                eprintln!("Failed to generate configuration: {}", e);
-                return;
-            }
-        };
+        let config_json =
+            match crate::config::generator::ConfigurationGenerator::generate_json(&self.config) {
+                Ok(json) => {
+                    println!("Configuration generated successfully");
+                    json
+                }
+                Err(e) => {
+                    eprintln!("Failed to generate configuration: {}", e);
+                    return;
+                }
+            };
 
         // Create Downloads directory path
         println!("Determining Downloads directory...");
@@ -326,7 +327,10 @@ impl App {
             return;
         }
 
-        println!("✓ Configuration downloaded successfully to: {:?}", file_path);
+        println!(
+            "✓ Configuration downloaded successfully to: {:?}",
+            file_path
+        );
         println!("=== download_config completed ===");
     }
 }
