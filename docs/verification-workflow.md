@@ -6,7 +6,7 @@ The verification workflow enables human-in-the-loop approval for AI agent action
 
 ## Workflow Diagram
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    AI Agent                                  │
 │  1. Get instruction context                                 │
@@ -45,6 +45,7 @@ The verification workflow enables human-in-the-loop approval for AI agent action
 ### POST /verify
 
 Request body:
+
 ```json
 {
   "action": "string - Description of the action",
@@ -56,6 +57,7 @@ Request body:
 ```
 
 Example:
+
 ```json
 {
   "action": "Deploy application to production",
@@ -96,20 +98,20 @@ Example:
 
 ### HTTP Status Codes
 
-| Code | Meaning |
-|------|---------|
-| 200 | Request successful |
-| 400 | Bad request (invalid format) |
-| 404 | Verification not found |
-| 500 | Server error |
+| Code | Meaning                      |
+|------|------------------------------|
+| 200  | Request successful           |
+| 400  | Bad request (invalid format) |
+| 404  | Verification not found       |
+| 500  | Server error                 |
 
 ### Verification Status Values
 
-| Status | Meaning |
-|--------|---------|
-| pending | Waiting for human approval |
-| approved | Action approved, proceed |
-| rejected | Action rejected, do not proceed |
+| Status   | Meaning                    |
+|----------|----------------------------|
+| pending  | Waiting for human approval |
+| approved | Action approved, proceed   |
+| rejected | Action rejected, abort     |
 
 ## Implementation Steps
 
@@ -364,6 +366,7 @@ log_event("verification_completed", {
 ### Default Timeout: 5 minutes
 
 If no human approval is received within 5 minutes:
+
 1. Verification is automatically rejected
 2. AI agent receives rejection status
 3. Action is aborted

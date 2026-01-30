@@ -10,11 +10,13 @@ This guide explains how to integrate AI agents with ChaseAI to enable controlled
 
 First, obtain the ChaseAI configuration file. You can do this in two ways:
 
-**Option A: Download via UI**
+### Option A: Download via UI
+
 - Click "Download Config" in the ChaseAI tray menu
 - Save the configuration file locally
 
-**Option B: Retrieve via API**
+### Option B: Retrieve via API
+
 ```bash
 curl http://localhost:8090/config
 ```
@@ -79,6 +81,7 @@ curl http://localhost:8090/context
 ```
 
 Response:
+
 ```json
 {
   "system": "System description",
@@ -90,6 +93,7 @@ Response:
 ```
 
 The context tells you:
+
 - **system**: What system you're controlling
 - **role**: Your role in the system
 - **base_instruction**: Core instructions to follow
@@ -114,6 +118,7 @@ curl -X POST http://localhost:8090/verify \
 ```
 
 Response:
+
 ```json
 {
   "status": "pending",
@@ -131,6 +136,7 @@ curl http://localhost:8090/verify/verify-abc123
 ```
 
 Response:
+
 ```json
 {
   "status": "approved",
@@ -140,6 +146,7 @@ Response:
 ```
 
 Possible statuses:
+
 - **pending**: Waiting for human approval
 - **approved**: Action approved, proceed
 - **rejected**: Action rejected, do not proceed
@@ -461,20 +468,24 @@ except TimeoutError:
 ## Troubleshooting
 
 ### Connection Refused
+
 - Ensure ChaseAI is running
 - Check the correct host and port
 - Verify firewall settings
 
 ### 404 Not Found
+
 - Ensure the port has an instruction context configured
 - Check that the endpoint path is correct
 
 ### 500 Internal Server Error
+
 - Check ChaseAI logs for details
 - Verify configuration is valid
 - Restart ChaseAI if needed
 
 ### Verification Timeout
+
 - Increase timeout value if needed
 - Check if human is available to approve
 - Verify verification endpoint is working
