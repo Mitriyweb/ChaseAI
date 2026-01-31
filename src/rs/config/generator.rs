@@ -65,11 +65,15 @@ impl ConfigurationGenerator {
         markdown.push_str("## Application\n\n");
         markdown.push_str(&format!(
             "- **Name**: {}\n",
-            json_config["application"]["name"].as_str().unwrap_or("ChaseAI")
+            json_config["application"]["name"]
+                .as_str()
+                .unwrap_or("ChaseAI")
         ));
         markdown.push_str(&format!(
             "- **Version**: {}\n",
-            json_config["application"]["version"].as_str().unwrap_or("unknown")
+            json_config["application"]["version"]
+                .as_str()
+                .unwrap_or("unknown")
         ));
         markdown.push_str(&format!(
             "- **Description**: {}\n\n",
@@ -88,10 +92,7 @@ impl ConfigurationGenerator {
                 let role = port["role"].as_str().unwrap_or("unknown");
                 let enabled = port["enabled"].as_bool().unwrap_or(false);
 
-                markdown.push_str(&format!(
-                    "### Port {}\n\n",
-                    port_num
-                ));
+                markdown.push_str(&format!("### Port {}\n\n", port_num));
                 markdown.push_str(&format!("- **Interface**: {}\n", interface));
                 markdown.push_str(&format!("- **Role**: {}\n", role));
                 markdown.push_str(&format!("- **Enabled**: {}\n\n", enabled));
@@ -102,10 +103,7 @@ impl ConfigurationGenerator {
                         let path = ep["path"].as_str().unwrap_or("unknown");
                         let method = ep["method"].as_str().unwrap_or("unknown");
                         let desc = ep["description"].as_str().unwrap_or("N/A");
-                        markdown.push_str(&format!(
-                            "- `{} {}` - {}\n",
-                            method, path, desc
-                        ));
+                        markdown.push_str(&format!("- `{} {}` - {}\n", method, path, desc));
                     }
                     markdown.push('\n');
                 }
@@ -271,13 +269,11 @@ impl ConfigurationGenerator {
                     "description": "Health check"
                 }),
             ],
-            PortRole::Workflow => vec![
-                json!({
-                    "path": "/health",
-                    "method": "GET",
-                    "description": "Health check"
-                }),
-            ],
+            PortRole::Workflow => vec![json!({
+                "path": "/health",
+                "method": "GET",
+                "description": "Health check"
+            })],
         }
     }
 }

@@ -36,14 +36,13 @@ toml = "0.8.14"
 axum = "0.7.5"
 tokio = { version = "1.38.0", features = ["full"] }
 regex = "1.10.0"
-notify = "6.1.1"
 image = "0.25.1"
 tray-icon = "0.14.3"
-tao = "0.28.1"
 chrono = { version = "0.4.38", features = ["serde"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
+tao = "0.28.1"
 
 [dev-dependencies]
 tempfile = "3.10.1"
