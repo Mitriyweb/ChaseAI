@@ -60,4 +60,12 @@ impl ServerPool {
             let _ = server.stop().await;
         }
     }
+
+    pub fn server_count(&self) -> usize {
+        self.servers.len()
+    }
+
+    pub fn has_server(&self, port: u16) -> bool {
+        self.servers.contains_key(&port)
+    }
 }

@@ -22,6 +22,26 @@ path = "src/test/rs/network_integration.rs"
 name = "instruction_integration"
 path = "src/test/rs/instruction_integration.rs"
 
+[[test]]
+name = "config"
+path = "src/test/rs/config.rs"
+
+[[test]]
+name = "network"
+path = "src/test/rs/network.rs"
+
+[[test]]
+name = "server"
+path = "src/test/rs/server.rs"
+
+[[test]]
+name = "ui"
+path = "src/test/rs/ui.rs"
+
+[[test]]
+name = "instruction"
+path = "src/test/rs/instruction.rs"
+
 [[bin]]
 name = "chase-ai"
 path = "src/rs/main.rs"

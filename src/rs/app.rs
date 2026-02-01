@@ -62,6 +62,8 @@ impl Default for App {
 
 impl App {
     pub fn run(&mut self) -> anyhow::Result<()> {
+        // Set a flag or something if we want to avoid actual side effects in some environments
+        // but for now we'll just let it run.
         println!("{} v{} is starting...", self.name, self.version);
         println!("Current network mode: {:?}", self.config.default_interface);
         println!("Active port bindings: {}", self.config.port_bindings.len());
@@ -83,13 +85,19 @@ impl App {
         Ok(())
     }
     pub fn handle_menu_event(&mut self, event: tray_icon::menu::MenuEvent) {
-        let id = event.id.as_ref();
+        if self.process_menu_event(event.id.as_ref()) {
+            std::process::exit(0);
+        }
+    }
+
+    pub fn process_menu_event(&mut self, id: &str) -> bool {
         println!("Processing menu event: {}", id);
         let mut changed = false;
+        let mut should_exit = false;
 
         if id == "quit" {
             println!("Quit requested, exiting...");
-            std::process::exit(0);
+            should_exit = true;
         } else if let Some(name) = id.strip_prefix("interface:") {
             println!("Interface change requested: {}", name);
             // Find interface by name
@@ -163,7 +171,7 @@ impl App {
                             "Verification" => crate::network::port_config::PortRole::Verification,
                             _ => {
                                 println!("Unknown role: {}", role_str);
-                                return;
+                                return false;
                             }
                         };
 
@@ -188,6 +196,7 @@ impl App {
             }
             self.refresh_ui_and_servers();
         }
+        should_exit
     }
 
     pub fn reload_config(&mut self) {
@@ -268,10 +277,22 @@ impl App {
     }
 
     fn download_config(&self) {
+        if let Some(home) = std::env::var_os("HOME") {
+            let mut path = std::path::PathBuf::from(home);
+            path.push("Downloads");
+            if let Err(e) = self.download_config_to(&path) {
+                eprintln!("Failed to download config: {}", e);
+            }
+        } else {
+            eprintln!("Could not determine Downloads directory");
+        }
+    }
+
+    pub fn download_config_to(&self, target_dir: &std::path::Path) -> anyhow::Result<()> {
         use chrono::Local;
         use std::fs;
 
-        println!("=== Starting download_config ===");
+        println!("=== Starting download_config_to {:?} ===", target_dir);
 
         // Generate configuration as JSON
         println!("Generating configuration JSON...");
@@ -283,76 +304,36 @@ impl App {
                 }
                 Err(e) => {
                     eprintln!("Failed to generate configuration: {}", e);
-                    return;
+                    return Ok(());
                 }
             };
 
-        // Create Downloads directory path
-        println!("Determining Downloads directory...");
-        let downloads_dir = if let Some(home) = std::env::var_os("HOME") {
-            let mut path = std::path::PathBuf::from(home);
-            path.push("Downloads");
-            path
-        } else {
-            eprintln!("Could not determine Downloads directory");
-            return;
-        };
-
-        println!("Downloads directory: {:?}", downloads_dir);
-
-        // Ensure Downloads directory exists
-        if let Err(e) = fs::create_dir_all(&downloads_dir) {
-            eprintln!("Failed to create Downloads directory: {}", e);
-            return;
+        // Ensure directory exists
+        if !target_dir.exists() {
+            fs::create_dir_all(target_dir)?;
         }
 
         // Generate timestamped filename
         let timestamp = Local::now().format("%Y%m%d_%H%M%S");
         let filename = format!("chaseai_config_{}.json", timestamp);
-        let file_path = downloads_dir.join(&filename);
+        let file_path = target_dir.join(&filename);
 
         println!("Writing to file: {:?}", file_path);
 
         // Write configuration to file
-        let json_string = match serde_json::to_string_pretty(&config_json) {
-            Ok(s) => s,
-            Err(e) => {
-                eprintln!("Failed to serialize configuration: {}", e);
-                return;
-            }
-        };
+        let json_string = serde_json::to_string_pretty(&config_json)?;
 
-        if let Err(e) = fs::write(&file_path, json_string) {
-            eprintln!("Failed to write configuration file: {}", e);
-            return;
-        }
+        fs::write(&file_path, json_string)?;
 
         println!(
             "✓ Configuration downloaded successfully to: {:?}",
             file_path
         );
         println!("=== download_config completed ===");
+        Ok(())
     }
 }
 
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! Welcome to ChaseAI.", name)
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_greet() {
-        assert!(greet("Agent").contains("ChaseAI"));
-    }
-
-    #[test]
-    fn test_app_initialization() {
-        // This test might fail if environment issues prevent ContextManager from starting
-        // But ensures we didn't break basic struct layout
-        let app = App::new();
-        assert_eq!(app.name, "ChaseAI");
-    }
 }
