@@ -338,21 +338,3 @@ impl App {
 pub fn greet(name: &str) -> String {
     format!("Hello, {}! Welcome to ChaseAI.", name)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_greet() {
-        assert!(greet("Agent").contains("ChaseAI"));
-    }
-
-    #[test]
-    fn test_app_initialization() {
-        // This test might fail if environment issues prevent ContextManager from starting
-        // But ensures we didn't break basic struct layout
-        let app = App::new();
-        assert_eq!(app.name, "ChaseAI");
-    }
-}

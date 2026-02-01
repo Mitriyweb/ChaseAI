@@ -19,6 +19,38 @@ name = "network_integration"
 path = "src/test/rs/network_integration.rs"
 
 [[test]]
+name = "network_config"
+path = "src/test/rs/network_config.rs"
+
+[[test]]
+name = "config_generator"
+path = "src/test/rs/config_generator.rs"
+
+[[test]]
+name = "instruction_context"
+path = "src/test/rs/instruction_context.rs"
+
+[[test]]
+name = "instruction_manager"
+path = "src/test/rs/instruction_manager.rs"
+
+[[test]]
+name = "instruction_storage"
+path = "src/test/rs/instruction_storage.rs"
+
+[[test]]
+name = "instruction_server"
+path = "src/test/rs/instruction_server.rs"
+
+[[test]]
+name = "port_config"
+path = "src/test/rs/port_config.rs"
+
+[[test]]
+name = "interface_detector"
+path = "src/test/rs/interface_detector.rs"
+
+[[test]]
 name = "instruction_integration"
 path = "src/test/rs/instruction_integration.rs"
 

@@ -123,7 +123,11 @@ mv CHANGELOG.md.tmp CHANGELOG.md
 echo "$NEW_VERSION" > .version
 
 # Update Cargo.toml
-sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+if [[ "$OSTYPE" == "darwin"* ]]; then
+  sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+else
+  sed -i "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+fi
 
 # Update package.json (add version field back temporarily for reference)
 # Note: package.json doesn't have version field anymore, but we keep it for reference
