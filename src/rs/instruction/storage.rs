@@ -86,6 +86,9 @@ impl ContextStorage {
 }
 
 fn get_config_dir() -> Option<PathBuf> {
+    if let Some(test_path) = std::env::var_os("CHASEAI_TEST_CONFIG_DIR") {
+        return Some(PathBuf::from(test_path));
+    }
     std::env::var_os("HOME").map(|h| {
         let mut p = PathBuf::from(h);
         p.push(".config");
@@ -96,6 +99,18 @@ fn get_config_dir() -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_storage_new() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        std::env::set_var("CHASEAI_TEST_CONFIG_DIR", temp_dir.path());
+
+        let storage = ContextStorage::new();
+        assert!(storage.is_ok());
+
+        std::env::remove_var("CHASEAI_TEST_CONFIG_DIR");
+        Ok(())
+    }
 
     #[test]
     fn test_save_load_storage() -> Result<()> {

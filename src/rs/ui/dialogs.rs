@@ -59,3 +59,17 @@ pub fn show_add_port_dialog() -> Option<PortConfig> {
     // Fallback for non-macOS platforms
     None
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_show_add_port_dialog_fallback() {
+        #[cfg(not(target_os = "macos"))]
+        {
+            let result = show_add_port_dialog();
+            assert!(result.is_none());
+        }
+    }
+}

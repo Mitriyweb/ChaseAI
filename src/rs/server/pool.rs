@@ -61,3 +61,65 @@ impl ServerPool {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::network_config::NetworkConfig;
+    use crate::network::interface_detector::{InterfaceType, NetworkInterface};
+    use crate::network::port_config::{PortBinding, PortRole};
+
+    async fn create_test_pool() -> (ServerPool, Arc<Mutex<ContextManager>>) {
+        let temp_dir = tempfile::tempdir().unwrap();
+        let storage = crate::instruction::storage::ContextStorage::with_path(
+            temp_dir.path().join("contexts.json"),
+        );
+        let context_manager = Arc::new(Mutex::new(
+            ContextManager::new_with_storage(storage).unwrap(),
+        ));
+        (ServerPool::new(context_manager.clone()), context_manager)
+    }
+
+    fn create_test_config(port: u16, enabled: bool) -> NetworkConfig {
+        let mut config = NetworkConfig::new();
+        config.port_bindings.clear();
+        config.port_bindings.push(PortBinding {
+            port,
+            interface: NetworkInterface {
+                name: "lo".to_string(),
+                ip_address: "127.0.0.1".parse().unwrap(),
+                interface_type: InterfaceType::Loopback,
+            },
+            role: PortRole::Instruction,
+            enabled,
+        });
+        config
+    }
+
+    #[tokio::test]
+    async fn test_pool_update_start_stop() {
+        let (mut pool, _) = create_test_pool().await;
+
+        // Start server
+        let config_on = create_test_config(3001, true);
+        pool.update(&config_on).await.unwrap();
+        assert_eq!(pool.servers.len(), 1);
+        assert!(pool.servers.contains_key(&3001));
+
+        // Stop server
+        let config_off = create_test_config(3001, false);
+        pool.update(&config_off).await.unwrap();
+        assert_eq!(pool.servers.len(), 0);
+    }
+
+    #[tokio::test]
+    async fn test_pool_shutdown() {
+        let (mut pool, _) = create_test_pool().await;
+        let config = create_test_config(3002, true);
+        pool.update(&config).await.unwrap();
+        assert_eq!(pool.servers.len(), 1);
+
+        pool.shutdown().await;
+        assert_eq!(pool.servers.len(), 0);
+    }
+}

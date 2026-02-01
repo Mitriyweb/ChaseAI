@@ -161,3 +161,24 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     Ok(menu)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::config::network_config::NetworkConfig;
+
+    #[test]
+    fn test_build_menu_empty() {
+        let mut config = NetworkConfig::new();
+        config.port_bindings.clear();
+        let menu = build_menu(&config);
+        assert!(menu.is_ok());
+    }
+
+    #[test]
+    fn test_build_menu_with_ports() {
+        let config = NetworkConfig::new(); // Has 2 default ports
+        let menu = build_menu(&config);
+        assert!(menu.is_ok());
+    }
+}

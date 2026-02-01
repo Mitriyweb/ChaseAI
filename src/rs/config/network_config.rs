@@ -99,6 +99,10 @@ mod dirs {
     use std::path::PathBuf;
 
     pub fn config_dir() -> Option<PathBuf> {
+        if let Some(test_path) = std::env::var_os("CHASEAI_TEST_CONFIG_DIR") {
+            return Some(PathBuf::from(test_path));
+        }
+
         #[cfg(target_os = "macos")]
         {
             std::env::var_os("HOME").map(|h| {
@@ -158,5 +162,32 @@ mod tests {
         assert_eq!(config.port_bindings.len(), 2);
         assert_eq!(config.port_bindings[0].port, 8888);
         assert_eq!(config.port_bindings[1].port, 9999);
+    }
+
+    #[test]
+    fn test_real_save_load() -> Result<()> {
+        let temp_dir = tempfile::tempdir()?;
+        std::env::set_var("CHASEAI_TEST_CONFIG_DIR", temp_dir.path());
+
+        let mut config = NetworkConfig::new();
+        config.port_bindings[0].port = 7777;
+
+        // Test save
+        config.save()?;
+
+        // Test load
+        let loaded = NetworkConfig::load()?;
+        assert_eq!(loaded.port_bindings[0].port, 7777);
+
+        // Test load non-existent (should return new/default)
+        std::env::set_var(
+            "CHASEAI_TEST_CONFIG_DIR",
+            temp_dir.path().join("non_existent"),
+        );
+        let default_config = NetworkConfig::load()?;
+        assert_eq!(default_config.port_bindings[0].port, 8888);
+
+        std::env::remove_var("CHASEAI_TEST_CONFIG_DIR");
+        Ok(())
     }
 }

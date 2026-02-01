@@ -89,4 +89,37 @@ mod tests {
             .iter()
             .all(|i| i.interface_type == InterfaceType::Loopback));
     }
+
+    #[test]
+    fn test_is_private_ip() {
+        use std::net::IpAddr;
+
+        // V4 Private
+        assert!(InterfaceDetector::is_private_ip(
+            "192.168.1.1".parse::<IpAddr>().unwrap()
+        ));
+        assert!(InterfaceDetector::is_private_ip(
+            "10.0.0.1".parse::<IpAddr>().unwrap()
+        ));
+        assert!(InterfaceDetector::is_private_ip(
+            "172.16.0.1".parse::<IpAddr>().unwrap()
+        ));
+
+        // V4 Public
+        assert!(!InterfaceDetector::is_private_ip(
+            "8.8.8.8".parse::<IpAddr>().unwrap()
+        ));
+
+        // V6 (currently always returns true in implementation)
+        assert!(InterfaceDetector::is_private_ip(
+            "::1".parse::<IpAddr>().unwrap()
+        ));
+    }
+
+    #[test]
+    fn test_detect_lan() {
+        let _ = InterfaceDetector::detect_lan().unwrap();
+        // We can't guarantee there is a LAN interface in all test environments,
+        // but we can ensure the call doesn't fail.
+    }
 }

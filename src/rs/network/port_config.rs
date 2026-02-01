@@ -99,4 +99,47 @@ mod tests {
         assert!(config.validate_port(80).is_err());
         assert!(config.validate_port(3000).is_ok());
     }
+
+    #[test]
+    fn test_remove_binding() {
+        let mut config = PortConfig::new();
+        let binding = PortBinding {
+            port: 3000,
+            interface: mock_interface(),
+            role: PortRole::Instruction,
+            enabled: true,
+        };
+        config.add_binding(binding).unwrap();
+        assert!(config.remove_binding(3000).is_ok());
+        assert!(config.get_binding(3000).is_none());
+        assert!(config.remove_binding(3000).is_err());
+    }
+
+    #[test]
+    fn test_list_bindings() {
+        let mut config = PortConfig::new();
+        let binding = PortBinding {
+            port: 3000,
+            interface: mock_interface(),
+            role: PortRole::Instruction,
+            enabled: true,
+        };
+        config.add_binding(binding).unwrap();
+        let bindings = config.list_bindings();
+        assert_eq!(bindings.len(), 1);
+        assert_eq!(bindings[0].port, 3000);
+    }
+
+    #[test]
+    fn test_duplicate_binding() {
+        let mut config = PortConfig::new();
+        let binding = PortBinding {
+            port: 3000,
+            interface: mock_interface(),
+            role: PortRole::Instruction,
+            enabled: true,
+        };
+        config.add_binding(binding.clone()).unwrap();
+        assert!(config.add_binding(binding).is_err());
+    }
 }
