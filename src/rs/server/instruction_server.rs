@@ -95,10 +95,60 @@ impl InstructionServer {
             .route("/context", get(get_context))
             .route("/config", get(get_config))
             .route("/health", get(health_check))
+            .route("/verify", axum::routing::post(verify_action))
             .layer(Extension(self.port))
             .layer(Extension(self.network_config.clone()))
             .with_state(self.context_manager.clone())
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct VerificationRequest {
+    pub action: String,
+    pub reason: String,
+    pub context: Option<serde_json::Value>,
+}
+
+#[derive(Debug, serde::Serialize)]
+pub struct VerificationResponse {
+    pub status: String,
+    pub verification_id: String,
+    pub message: Option<String>,
+}
+
+async fn verify_action(
+    Json(payload): Json<VerificationRequest>,
+) -> Json<VerificationResponse> {
+    println!("🚨 Verification requested for action: {}", payload.action);
+
+    let context_str = payload.context
+        .as_ref()
+        .map(|c| c.to_string())
+        .unwrap_or_else(|| "{}".to_string());
+
+    // 1. Show a tray notification first
+    let notify_script = format!(
+        "display notification \"Action: {}\" with title \"🚨 ChaseAI: Verification Needed\" subtitle \"Reason: {}\"",
+        payload.action.replace("\"", "\\\""),
+        payload.reason.replace("\"", "\\\"")
+    );
+    let _ = std::process::Command::new("osascript").arg("-e").arg(notify_script).output();
+
+    // 2. Show the actual UI dialog
+    let (approved, message) = crate::ui::dialogs::show_verification_dialog(
+        &payload.action,
+        &payload.reason,
+        &context_str
+    );
+
+    let status = if approved { "approved" } else { "rejected" };
+    let verification_id = format!("v-{}", chrono::Utc::now().timestamp());
+
+    Json(VerificationResponse {
+        status: status.to_string(),
+        verification_id,
+        message,
+    })
 }
 
 async fn get_context(

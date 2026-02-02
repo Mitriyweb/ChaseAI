@@ -42,6 +42,11 @@ path = "src/test/rs/ui.rs"
 name = "instruction"
 path = "src/test/rs/instruction.rs"
 
+[[test]]
+name = "config_filtering"
+path = "src/test/rs/config_filtering.rs"
+
+
 [[bin]]
 name = "chase-ai"
 path = "src/rs/main.rs"

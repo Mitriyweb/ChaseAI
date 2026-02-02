@@ -48,6 +48,9 @@ jobs:
       - name: Run markdownlint
         run: bun run lint:md
 
+      - name: Check test organization
+        run: bash scripts/check-test-organization.sh
+
       - name: Run rustfmt
         run: cargo fmt --all -- --check
 

@@ -7,7 +7,6 @@ use std::collections::HashMap;
 pub enum PortRole {
     Instruction,
     Verification,
-    Workflow,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]

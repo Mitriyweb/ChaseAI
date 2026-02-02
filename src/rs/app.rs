@@ -98,34 +98,45 @@ impl App {
         if id == "quit" {
             println!("Quit requested, exiting...");
             should_exit = true;
+        } else if let Some(port_str) = id.strip_prefix("port:") {
+            if let Ok(port) = port_str.parse::<u16>() {
+                if let Some(binding) = self.config.port_bindings.iter_mut().find(|p| p.port == port) {
+                    binding.enabled = !binding.enabled;
+                    changed = true;
+                }
+            }
+        } else if let Some(port_str) = id.strip_prefix("remove_port:") {
+            if let Ok(port) = port_str.parse::<u16>() {
+                self.config.port_bindings.retain(|b| b.port != port);
+                changed = true;
+            }
+        } else if let Some(role_change) = id.strip_prefix("role:") {
+            let parts: Vec<&str> = role_change.split(':').collect();
+            if parts.len() == 2 {
+                if let Ok(port) = parts[0].parse::<u16>() {
+                    let role_str = parts[1];
+                    if let Some(binding) = self.config.port_bindings.iter_mut().find(|b| b.port == port) {
+                        binding.role = match role_str {
+                            "Instruction" => crate::network::port_config::PortRole::Instruction,
+                            "Verification" => crate::network::port_config::PortRole::Verification,
+                            _ => binding.role,
+                        };
+                        changed = true;
+                    }
+                }
+            }
         } else if let Some(name) = id.strip_prefix("interface:") {
             println!("Interface change requested: {}", name);
-            // Find interface by name
+            // ... (rest of interface code)
             if let Ok(interfaces) =
                 crate::network::interface_detector::InterfaceDetector::detect_all()
             {
                 if let Some(iface) = interfaces.iter().find(|i| i.name == name) {
                     self.config.default_interface = iface.interface_type.clone();
-                    // Update all bindings to use this new interface type/ip
                     for binding in &mut self.config.port_bindings {
                         binding.interface = iface.clone();
                     }
                     changed = true;
-                    println!("Interface changed to: {:?}", iface.interface_type);
-                }
-            }
-        } else if let Some(port_str) = id.strip_prefix("port:") {
-            println!("Port toggle requested: {}", port_str);
-            if let Ok(port) = port_str.parse::<u16>() {
-                if let Some(binding) = self
-                    .config
-                    .port_bindings
-                    .iter_mut()
-                    .find(|p| p.port == port)
-                {
-                    binding.enabled = !binding.enabled;
-                    changed = true;
-                    println!("Port {} toggled to: {}", port, binding.enabled);
                 }
             }
         } else if id == "cmd:enable_all" {
@@ -142,51 +153,15 @@ impl App {
             changed = true;
         } else if id == "cmd:add_port" {
             println!("Add port requested");
-            // For now, add a simple port (in future, this could open a dialog)
             self.add_default_port();
             changed = true;
-        } else if let Some(port_str) = id.strip_prefix("remove_port:") {
-            println!("Remove port requested: {}", port_str);
-            if let Ok(port) = port_str.parse::<u16>() {
-                self.config.port_bindings.retain(|b| b.port != port);
-                changed = true;
-                println!("Port {} removed", port);
-            }
-        } else if let Some(role_change) = id.strip_prefix("role:") {
-            // Format: "role:PORT:ROLE"
-            let parts: Vec<&str> = role_change.split(':').collect();
-            if parts.len() == 2 {
-                if let Ok(port) = parts[0].parse::<u16>() {
-                    let role_str = parts[1];
-                    println!("Change role requested for port {}: {}", port, role_str);
-
-                    if let Some(binding) = self
-                        .config
-                        .port_bindings
-                        .iter_mut()
-                        .find(|b| b.port == port)
-                    {
-                        let new_role = match role_str {
-                            "Instruction" => crate::network::port_config::PortRole::Instruction,
-                            "Verification" => crate::network::port_config::PortRole::Verification,
-                            _ => {
-                                println!("Unknown role: {}", role_str);
-                                return false;
-                            }
-                        };
-
-                        binding.role = new_role;
-                        changed = true;
-                        println!("Port {} role changed to: {:?}", port, new_role);
-                    }
-                }
-            }
         } else if id == "cmd:download_config" {
             println!("Download config requested");
             self.download_config();
         } else {
             println!("Unknown menu event: {}", id);
         }
+
 
         if changed {
             println!("Configuration changed, saving and refreshing...");
@@ -210,12 +185,12 @@ impl App {
     }
 
     fn refresh_ui_and_servers(&mut self) {
-        // 2. Update UI
+        // 1. Update UI
         if let Err(e) = self.tray.update_menu(&self.config) {
             eprintln!("Failed to update tray: {}", e);
         }
 
-        // 3. Update Servers
+        // 2. Update Servers
         let pool = self.server_pool.clone();
         let config_clone = self.config.clone();
         self.runtime.block_on(async {
@@ -223,11 +198,56 @@ impl App {
                 eprintln!("Failed to update servers: {}", e);
             }
         });
+
+        // 3. Update Live Manifests (if they exist in root)
+        self.update_live_manifests();
+    }
+
+    fn update_live_manifests(&self) {
+        use crate::config::generator::ConfigurationGenerator;
+        use std::fs;
+        use std::path::Path;
+
+        let manifests = [
+            ("chai_config.md", "md"),
+            ("chai_config.json", "json"),
+            ("chai_config.yaml", "yaml"),
+        ];
+
+        for (filename, ext) in manifests {
+            if Path::new(filename).exists() {
+                let content = match ext {
+                    "md" => ConfigurationGenerator::generate_markdown(&self.config),
+                    "json" => ConfigurationGenerator::generate_json(&self.config).map(|v| serde_json::to_string_pretty(&v).unwrap_or_default()),
+                    "yaml" => ConfigurationGenerator::generate_yaml(&self.config),
+                    _ => continue,
+                };
+
+                if let Ok(data) = content {
+                    let _ = fs::write(filename, data);
+                }
+            }
+        }
     }
 
     fn add_default_port(&mut self) {
+        // Find the first port starting from 8888 that is:
+        // 1. Not in our config
+        // 2. Actually free on the system (at least on 127.0.0.1)
+        let existing_ports: std::collections::HashSet<u16> = self.config.port_bindings.iter()
+            .map(|b| b.port)
+            .collect();
+
+        let mut default_port = 8888;
+        while default_port < 65535 {
+            if !existing_ports.contains(&default_port) && std::net::TcpListener::bind(format!("127.0.0.1:{}", default_port)).is_ok() {
+                break;
+            }
+            default_port += 1;
+        }
+
         // Show dialog to get port configuration
-        if let Some(port_config) = crate::ui::dialogs::show_add_port_dialog() {
+        if let Some(port_config) = crate::ui::dialogs::show_add_port_dialog(default_port) {
             // Check if port already exists
             if self
                 .config
@@ -277,19 +297,80 @@ impl App {
     }
 
     fn download_config(&self) {
-        if let Some(home) = std::env::var_os("HOME") {
-            let mut path = std::path::PathBuf::from(home);
-            path.push("Downloads");
-            if let Err(e) = self.download_config_to(&path) {
+        // Show preview dialog to get user preferences
+        if let Some(options) = crate::ui::dialogs::show_download_config_dialog(&self.config) {
+            if let Err(e) = self.download_config_with_options(&options) {
                 eprintln!("Failed to download config: {}", e);
+            } else {
+                println!("✓ Configuration downloaded successfully");
             }
         } else {
-            eprintln!("Could not determine Downloads directory");
+            println!("Download config cancelled by user");
         }
     }
 
+    fn download_config_with_options(
+        &self,
+        options: &crate::ui::dialogs::ConfigDownloadOptions,
+    ) -> anyhow::Result<()> {
+
+        use std::fs;
+
+        println!("=== Starting download_config_with_options ===");
+        println!("Selected ports: {:?}", options.selected_ports);
+        println!("Format: {:?}", options.format);
+        println!("Save path: {:?}", options.save_path);
+
+        // Filter config to only include selected ports
+        let filtered_config = config::network_config::NetworkConfig {
+            port_bindings: self
+                .config
+                .port_bindings
+                .iter()
+                .filter(|b| options.selected_ports.contains(&b.port))
+                .cloned()
+                .collect(),
+            ..self.config.clone()
+        };
+
+        // Generate configuration in the selected format
+        let (content, extension) = match options.format {
+            crate::ui::dialogs::ConfigFormat::Json => {
+                let json = config::generator::ConfigurationGenerator::generate_json(&filtered_config)?;
+                let content = serde_json::to_string_pretty(&json)?;
+                (content, "json")
+            }
+            crate::ui::dialogs::ConfigFormat::Yaml => {
+                let content = config::generator::ConfigurationGenerator::generate_yaml(&filtered_config)?;
+                (content, "yaml")
+            }
+            crate::ui::dialogs::ConfigFormat::Markdown => {
+                let content = config::generator::ConfigurationGenerator::generate_markdown(&filtered_config)?;
+                (content, "md")
+            }
+        };
+
+        // Ensure directory exists
+        if !options.save_path.exists() {
+            fs::create_dir_all(&options.save_path)?;
+        }
+
+        // Generate filename
+        let filename = format!("chai_config.{}", extension);
+        let file_path = options.save_path.join(filename);
+
+        println!("Writing to file: {:?}", file_path);
+
+        // Write configuration to file
+        fs::write(&file_path, content)?;
+
+        println!("✓ Configuration downloaded successfully to: {:?}", file_path);
+        println!("=== download_config_with_options completed ===");
+        Ok(())
+    }
+
     pub fn download_config_to(&self, target_dir: &std::path::Path) -> anyhow::Result<()> {
-        use chrono::Local;
+
         use std::fs;
 
         println!("=== Starting download_config_to {:?} ===", target_dir);
@@ -313,10 +394,9 @@ impl App {
             fs::create_dir_all(target_dir)?;
         }
 
-        // Generate timestamped filename
-        let timestamp = Local::now().format("%Y%m%d_%H%M%S");
-        let filename = format!("chaseai_config_{}.json", timestamp);
-        let file_path = target_dir.join(&filename);
+        // Generate filename
+        let filename = "chai_config.json";
+        let file_path = target_dir.join(filename);
 
         println!("Writing to file: {:?}", file_path);
 
@@ -332,6 +412,7 @@ impl App {
         println!("=== download_config completed ===");
         Ok(())
     }
+
 }
 
 pub fn greet(name: &str) -> String {

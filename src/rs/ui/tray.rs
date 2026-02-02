@@ -80,7 +80,14 @@ impl TrayManager {
             builder = builder.with_icon(icon);
         }
 
-        self.tray_icon = Some(builder.build()?);
+        let tray_icon = builder.build()?;
+
+        #[cfg(target_os = "macos")]
+        {
+            tray_icon.set_icon_as_template(true);
+        }
+
+        self.tray_icon = Some(tray_icon);
         println!("Tray icon created successfully");
 
         Ok(())

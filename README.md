@@ -70,10 +70,25 @@ ChaseAI provides a standardized way for AI agents to discover and integrate with
 ### Getting Started
 
 1. **Download Configuration** - Click "Download Config" in the ChaseAI tray menu
-2. **Parse Configuration** - Read the JSON/YAML configuration file
+   - **Select Ports** - Choose which ports to include in the configuration
+   - **Choose Format** - Select JSON, YAML, or Markdown format
+   - **Pick Location** - Choose where to save the configuration file
+   - **Preview** - Review the configuration before saving
+2. **Parse Configuration** - Read the downloaded configuration file
 3. **Retrieve Context** - Get instruction context via `GET /context`
 4. **Request Verification** - Submit actions for human approval via `POST /verify`
 5. **Poll Status** - Check verification status via `GET /verify/{id}`
+
+### Download Configuration Dialog
+
+The "Download Config" feature provides an interactive preview dialog that allows you to customize the exported configuration:
+
+- **Port Selection**: Choose which ports to include (all enabled ports selected by default)
+- **Format Options**: Export as JSON (default), YAML, or Markdown
+- **Custom Location**: Save to any directory (defaults to ~/Downloads)
+- **Live Preview**: Review the configuration content before saving
+
+This allows you to create tailored configuration files for different AI agents or integration scenarios.
 
 ### Configuration Endpoint
 

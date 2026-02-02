@@ -3,7 +3,6 @@
         "MD013": false
     },
     "ignores": [
-        "node_modules",
-        "openspec/changes/archive"
+        "node_modules"
     ]
 }

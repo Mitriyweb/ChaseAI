@@ -180,7 +180,7 @@ async fn test_config_endpoint_json() {
         .unwrap();
     assert_eq!(resp.status(), StatusCode::OK);
     let body = resp.text().await.unwrap();
-    assert!(body.contains("# ChaseAI Configuration"));
+    assert!(body.contains("# 🛠 ChaseAI Agent Integration Manifest"));
 
     server.stop().await.unwrap();
 }

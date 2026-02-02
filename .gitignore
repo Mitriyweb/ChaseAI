@@ -24,3 +24,4 @@ target
 *.txt
 node_modules
 .DS_Store
+chai_config.*

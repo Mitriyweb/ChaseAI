@@ -53,3 +53,9 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+      - id: test-organization
+        name: test organization check
+        entry: bash -c 'scripts/check-test-organization.sh'
+        language: system
+        files: \.rs$
+        pass_filenames: false

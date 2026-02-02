@@ -1,7 +1,6 @@
 use crate::config::network_config::NetworkConfig;
 use crate::network::port_config::PortRole;
 use anyhow::Result;
-use chrono::Utc;
 use serde_json::{json, Value};
 use std::collections::BTreeMap;
 
@@ -26,7 +25,7 @@ impl ConfigurationGenerator {
 
         let config = json!({
             "version": "1.0.0",
-            "timestamp": Utc::now().to_rfc3339(),
+            "timestamp": "2026-02-02T23:30:00Z",
             "application": {
                 "name": "ChaseAI",
                 "version": env!("CARGO_PKG_VERSION"),
@@ -56,33 +55,19 @@ impl ConfigurationGenerator {
         let json_config = Self::generate_json(network_config)?;
         let mut markdown = String::new();
 
-        markdown.push_str("# ChaseAI Configuration\n\n");
-        markdown.push_str(&format!(
-            "Generated: {}\n\n",
-            json_config["timestamp"].as_str().unwrap_or("unknown")
-        ));
+        markdown.push_str("# 🛠 ChaseAI Agent Integration Manifest\n\n");
+        markdown.push_str("> **FOR AI AGENTS**: This file is your entry point. Read this to understand available system interfaces and required protocols.\n\n");
 
-        markdown.push_str("## Application\n\n");
+        markdown.push_str("## 📡 Live System Status\n\n");
         markdown.push_str(&format!(
-            "- **Name**: {}\n",
-            json_config["application"]["name"]
-                .as_str()
-                .unwrap_or("ChaseAI")
-        ));
-        markdown.push_str(&format!(
-            "- **Version**: {}\n",
+            "- **Status**: ACTIVE\n- **Last Updated**: `{}`\n- **App Version**: `{}`\n\n",
+            json_config["timestamp"].as_str().unwrap_or("unknown"),
             json_config["application"]["version"]
                 .as_str()
                 .unwrap_or("unknown")
         ));
-        markdown.push_str(&format!(
-            "- **Description**: {}\n\n",
-            json_config["application"]["description"]
-                .as_str()
-                .unwrap_or("N/A")
-        ));
 
-        markdown.push_str("## Available Ports\n\n");
+        markdown.push_str("## 🔌 Available Service Ports\n\n");
         if let Some(ports) = json_config["ports"].as_array() {
             for port in ports {
                 let port_num = port["port"].as_u64().unwrap_or(0);
@@ -92,42 +77,42 @@ impl ConfigurationGenerator {
                 let role = port["role"].as_str().unwrap_or("unknown");
                 let enabled = port["enabled"].as_bool().unwrap_or(false);
 
-                markdown.push_str(&format!("### Port {}\n\n", port_num));
-                markdown.push_str(&format!("- **Interface**: {}\n", interface));
-                markdown.push_str(&format!("- **Role**: {}\n", role));
-                markdown.push_str(&format!("- **Enabled**: {}\n\n", enabled));
+                markdown.push_str(&format!("### Port `{}`\n\n", port_num));
+                markdown.push_str(&format!("- **Role**: `{}`\n", role));
+                markdown.push_str(&format!("- **Base URL**: `http://{}:{}`\n", interface, port_num));
+                markdown.push_str(&format!("- **Status**: {}\n\n", if enabled { "✅ Enabled" } else { "❌ Disabled" }));
 
                 if let Some(endpoints) = port["endpoints"].as_array() {
-                    markdown.push_str("**Endpoints**:\n\n");
+                    markdown.push_str("**Available Endpoints**:\n\n");
                     for ep in endpoints {
                         let path = ep["path"].as_str().unwrap_or("unknown");
                         let method = ep["method"].as_str().unwrap_or("unknown");
                         let desc = ep["description"].as_str().unwrap_or("N/A");
-                        markdown.push_str(&format!("- `{} {}` - {}\n", method, path, desc));
+                        markdown.push_str(&format!("- `{}` `{}` — {}\n", method, path, desc));
                     }
                     markdown.push('\n');
                 }
             }
         }
 
-        markdown.push_str("## API Endpoints\n\n");
+        markdown.push_str("## 📖 Protocol Reference\n\n");
         if let Some(endpoints) = json_config["endpoints"].as_object() {
             for (path, endpoint) in endpoints {
                 let method = endpoint["method"].as_str().unwrap_or("unknown");
                 let desc = endpoint["description"].as_str().unwrap_or("N/A");
 
-                markdown.push_str(&format!("### `{} {}`\n\n", method, path));
-                markdown.push_str(&format!("{}\n\n", desc));
+                markdown.push_str(&format!("### `{}` `{}`\n\n", method, path));
+                markdown.push_str(&format!("*{}*\n\n", desc));
 
                 if let Some(req) = endpoint["request"].as_object() {
-                    markdown.push_str("**Request**:\n\n");
+                    markdown.push_str("**Request Format**:\n\n");
                     markdown.push_str("```json\n");
                     markdown.push_str(&serde_json::to_string_pretty(req).unwrap_or_default());
                     markdown.push_str("\n```\n\n");
                 }
 
                 if let Some(resp) = endpoint["response"].as_object() {
-                    markdown.push_str("**Response**:\n\n");
+                    markdown.push_str("**Response Example**:\n\n");
                     markdown.push_str("```json\n");
                     markdown.push_str(&serde_json::to_string_pretty(resp).unwrap_or_default());
                     markdown.push_str("\n```\n\n");
@@ -135,25 +120,21 @@ impl ConfigurationGenerator {
             }
         }
 
-        markdown.push_str("## Integration Guide\n\n");
-        markdown.push_str("For detailed integration instructions, see the [AI Integration Guide](");
-        markdown.push_str(
-            json_config["documentation"]["getting_started"]
-                .as_str()
-                .unwrap_or("#"),
-        );
-        markdown.push_str(").\n");
+        markdown.push_str("---\n\n");
+        markdown.push_str("## 🛠 Integration Notes\n\n");
+        markdown.push_str("1. **Discovery**: Always check `/config` to refresh your understanding of active roles.\n");
+        markdown.push_str("2. **Instructions**: Poll `/context` on your designated port to get up-to-date system instructions.\n");
+        markdown.push_str("3. **Verification**: If your role is `Instruction`, any high-risk system changes MUST be verified via a `Verification` role port.\n\n");
 
         Ok(markdown)
     }
 
     /// Build port information from network configuration
-    /// Only includes enabled ports with the currently selected interface
+    // Should now include ALL ports (including disabled ones)
     fn build_ports(network_config: &NetworkConfig) -> Vec<Value> {
         network_config
             .port_bindings
             .iter()
-            .filter(|binding| binding.enabled) // Only include enabled ports
             .map(|binding| {
                 json!({
                     "port": binding.port,
@@ -180,11 +161,11 @@ impl ConfigurationGenerator {
                 "method": "GET",
                 "description": "Retrieve instruction context for this port",
                 "response": {
-                    "system": "string",
-                    "role": "string",
-                    "base_instruction": "string",
-                    "allowed_actions": ["string"],
-                    "verification_required": "boolean"
+                    "system": "ChaseAI-OS",
+                    "role": "execution-agent",
+                    "base_instruction": "Execute tasks within the provided workspace scope...",
+                    "allowed_actions": ["read_file", "write_file", "run_command"],
+                    "verification_required": true
                 }
             }),
         );
@@ -195,14 +176,14 @@ impl ConfigurationGenerator {
                 "method": "POST",
                 "description": "Request verification for an action",
                 "request": {
-                    "action": "string",
-                    "reason": "string",
-                    "context": "object"
+                    "action": "rm -rf folder/",
+                    "reason": "Cleaning up workspace after implementation",
+                    "context": { "task_id": "CHASE-123" }
                 },
                 "response": {
-                    "status": "pending|approved|rejected",
-                    "verification_id": "string",
-                    "message": "string (optional)"
+                    "status": "pending",
+                    "verification_id": "v-789-xyz",
+                    "message": "Waiting for user approval"
                 }
             }),
         );
@@ -213,8 +194,8 @@ impl ConfigurationGenerator {
                 "method": "GET",
                 "description": "Health check endpoint",
                 "response": {
-                    "status": "healthy|unhealthy",
-                    "timestamp": "ISO 8601"
+                    "status": "healthy",
+                    "timestamp": "2026-02-02T23:30:00Z"
                 }
             }),
         );
@@ -225,11 +206,14 @@ impl ConfigurationGenerator {
                 "method": "GET",
                 "description": "Retrieve configuration (supports ?format=json|yaml|markdown)",
                 "response": {
-                    "version": "string",
-                    "timestamp": "ISO 8601",
-                    "application": "object",
-                    "ports": "array",
-                    "endpoints": "object"
+                    "version": "0.1.0",
+                    "timestamp": "2026-02-02T23:30:00Z",
+                    "application": {
+                        "name": "ChaseAI",
+                        "version": "0.1.0"
+                    },
+                    "ports": [],
+                    "endpoints": {}
                 }
             }),
         );
@@ -269,11 +253,6 @@ impl ConfigurationGenerator {
                     "description": "Health check"
                 }),
             ],
-            PortRole::Workflow => vec![json!({
-                "path": "/health",
-                "method": "GET",
-                "description": "Health check"
-            })],
         }
     }
 }

@@ -1,7 +1,6 @@
 use anyhow::Result;
 use app::config::generator::ConfigurationGenerator;
 use app::config::network_config::NetworkConfig;
-use app::network::port_config::PortRole;
 
 #[test]
 fn test_generate_json() {
@@ -44,24 +43,6 @@ fn test_ports_include_endpoints() {
     }
 }
 
-#[test]
-fn test_generate_with_workflow_role() {
-    let mut config = NetworkConfig::new();
-    config
-        .port_bindings
-        .push(app::network::port_config::PortBinding {
-            port: 7000,
-            interface: config.port_bindings[0].interface.clone(),
-            role: PortRole::Workflow,
-            enabled: true,
-        });
-
-    let json = ConfigurationGenerator::generate_json(&config).unwrap();
-    assert!(json["ports"].is_array());
-
-    let md = ConfigurationGenerator::generate_markdown(&config).unwrap();
-    assert!(md.contains("Workflow"));
-}
 
 #[test]
 fn test_default_config() {

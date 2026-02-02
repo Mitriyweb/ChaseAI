@@ -47,7 +47,6 @@ via ChaseAI.
 - bind ports to roles:
   - instruction
   - verification
-  - workflow
 
 **Tray UI:**
 

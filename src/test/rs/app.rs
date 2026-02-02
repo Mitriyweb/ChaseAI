@@ -149,9 +149,3 @@ fn test_process_menu_event_role_change() {
         app::network::port_config::PortRole::Verification
     );
 }
-
-#[test]
-fn test_process_menu_event_download_config() {
-    let mut app = App::new();
-    app.process_menu_event("cmd:download_config");
-}

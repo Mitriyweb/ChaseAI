@@ -61,59 +61,43 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
         menu.append(&MenuItem::new("Ports:", true, None))?;
 
         for binding in &config.port_bindings {
-            // Show status indicator in the port label
             let status_icon = if binding.enabled { "●" } else { "○" };
-            let role_name = match binding.role {
-                crate::network::port_config::PortRole::Instruction => "Instruction",
-                crate::network::port_config::PortRole::Verification => "Verification",
-                crate::network::port_config::PortRole::Workflow => "Workflow",
-            };
+            let role_name = format!("{:?}", binding.role);
             let port_label = format!("{} {} • {}", status_icon, binding.port, role_name);
 
             let port_submenu = Submenu::new(&port_label, true);
 
-            // Toggle enabled/disabled
+            // 1. Toggle
             let toggle_id = format!("port:{}", binding.port);
-            let toggle_label = if binding.enabled { "Disable" } else { "Enable" };
-            let toggle_item = MenuItem::with_id(toggle_id, toggle_label, true, None);
-            port_submenu.append(&toggle_item)?;
+            let toggle_label = if binding.enabled { "● Disable Port" } else { "○ Enable Port" };
+            port_submenu.append(&MenuItem::with_id(toggle_id, toggle_label, true, None))?;
 
             port_submenu.append(&PredefinedMenuItem::separator())?;
 
-            // Change role submenu
-            let role_menu = Submenu::new("Change Role", true);
+            // 2. Roles (manual symbols for alignment)
+            let inst_id = format!("role:{}:Instruction", binding.port);
+            let is_inst = matches!(binding.role, crate::network::port_config::PortRole::Instruction);
+            let inst_label = if is_inst { "● Role: Instruction" } else { "○ Role: Instruction" };
+            port_submenu.append(&MenuItem::with_id(inst_id, inst_label, true, None))?;
 
-            let instruction_id = format!("role:{}:Instruction", binding.port);
-            let instruction_item = CheckMenuItem::with_id(
-                instruction_id,
-                "Instruction",
-                true,
-                matches!(
-                    binding.role,
-                    crate::network::port_config::PortRole::Instruction
-                ),
-                None,
-            );
-            role_menu.append(&instruction_item)?;
+            let ver_id = format!("role:{}:Verification", binding.port);
+            let is_ver = matches!(binding.role, crate::network::port_config::PortRole::Verification);
+            let ver_label = if is_ver { "● Role: Verification" } else { "○ Role: Verification" };
+            port_submenu.append(&MenuItem::with_id(ver_id, ver_label, true, None))?;
 
-            let verification_id = format!("role:{}:Verification", binding.port);
-            let verification_item = CheckMenuItem::with_id(
-                verification_id,
-                "Verification",
-                true,
-                matches!(
-                    binding.role,
-                    crate::network::port_config::PortRole::Verification
-                ),
-                None,
-            );
-            role_menu.append(&verification_item)?;
+            port_submenu.append(&PredefinedMenuItem::separator())?;
 
-            port_submenu.append(&role_menu)?;
+            // 3. Delete
+            let remove_id = format!("remove_port:{}", binding.port);
+            port_submenu.append(&MenuItem::with_id(remove_id, "✕ Remove Port", true, None))?;
 
             menu.append(&port_submenu)?;
         }
     }
+
+    // Add new port button directly under the list
+    let add_port = MenuItem::with_id("cmd:add_port", "Add New Port...", true, None);
+    menu.append(&add_port)?;
 
     menu.append(&PredefinedMenuItem::separator())?;
 
@@ -123,28 +107,6 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
     menu.append(&download_config)?;
     println!("Download Config button added successfully");
 
-    menu.append(&PredefinedMenuItem::separator())?;
-
-    // Add port management submenu
-    let port_mgmt = Submenu::new("Manage Ports", true);
-
-    let add_port = MenuItem::with_id("cmd:add_port", "Add New Port...", true, None);
-    port_mgmt.append(&add_port)?;
-
-    if !config.port_bindings.is_empty() {
-        port_mgmt.append(&PredefinedMenuItem::separator())?;
-
-        for binding in &config.port_bindings {
-            let id = format!("remove_port:{}", binding.port);
-            let label = format!("Remove Port {}", binding.port);
-            let item = MenuItem::with_id(id, &label, true, None);
-            port_mgmt.append(&item)?;
-        }
-    }
-
-    menu.append(&port_mgmt)?;
-
-    menu.append(&PredefinedMenuItem::separator())?;
 
     // 4. Global Commands
     let enable_all = MenuItem::with_id("cmd:enable_all", "Enable All Services", true, None);
