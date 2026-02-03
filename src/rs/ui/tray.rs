@@ -73,7 +73,7 @@ impl TrayManager {
         }
 
         let mut builder = TrayIconBuilder::new()
-            .with_menu(Box::new(tray_menu))
+            .with_menu(Box::new(tray_menu) as Box<dyn tray_icon::menu::ContextMenu>)
             .with_tooltip("ChaseAI - Network Management");
 
         if let Some(icon) = icon {
@@ -96,7 +96,9 @@ impl TrayManager {
     pub fn update_menu(&mut self, config: &NetworkConfig) -> anyhow::Result<()> {
         if let Some(tray_icon) = &mut self.tray_icon {
             let new_menu = tray_menu::build_menu(config)?;
-            tray_icon.set_menu(Some(Box::new(new_menu)));
+            tray_icon.set_menu(Some(
+                Box::new(new_menu) as Box<dyn tray_icon::menu::ContextMenu>
+            ));
         }
         Ok(())
     }

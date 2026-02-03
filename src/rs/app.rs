@@ -100,7 +100,12 @@ impl App {
             should_exit = true;
         } else if let Some(port_str) = id.strip_prefix("port:") {
             if let Ok(port) = port_str.parse::<u16>() {
-                if let Some(binding) = self.config.port_bindings.iter_mut().find(|p| p.port == port) {
+                if let Some(binding) = self
+                    .config
+                    .port_bindings
+                    .iter_mut()
+                    .find(|p| p.port == port)
+                {
                     binding.enabled = !binding.enabled;
                     changed = true;
                 }
@@ -115,7 +120,12 @@ impl App {
             if parts.len() == 2 {
                 if let Ok(port) = parts[0].parse::<u16>() {
                     let role_str = parts[1];
-                    if let Some(binding) = self.config.port_bindings.iter_mut().find(|b| b.port == port) {
+                    if let Some(binding) = self
+                        .config
+                        .port_bindings
+                        .iter_mut()
+                        .find(|b| b.port == port)
+                    {
                         binding.role = match role_str {
                             "Instruction" => crate::network::port_config::PortRole::Instruction,
                             "Verification" => crate::network::port_config::PortRole::Verification,
@@ -161,7 +171,6 @@ impl App {
         } else {
             println!("Unknown menu event: {}", id);
         }
-
 
         if changed {
             println!("Configuration changed, saving and refreshing...");
@@ -218,7 +227,8 @@ impl App {
             if Path::new(filename).exists() {
                 let content = match ext {
                     "md" => ConfigurationGenerator::generate_markdown(&self.config),
-                    "json" => ConfigurationGenerator::generate_json(&self.config).map(|v| serde_json::to_string_pretty(&v).unwrap_or_default()),
+                    "json" => ConfigurationGenerator::generate_json(&self.config)
+                        .map(|v| serde_json::to_string_pretty(&v).unwrap_or_default()),
                     "yaml" => ConfigurationGenerator::generate_yaml(&self.config),
                     _ => continue,
                 };
@@ -234,13 +244,14 @@ impl App {
         // Find the first port starting from 8888 that is:
         // 1. Not in our config
         // 2. Actually free on the system (at least on 127.0.0.1)
-        let existing_ports: std::collections::HashSet<u16> = self.config.port_bindings.iter()
-            .map(|b| b.port)
-            .collect();
+        let existing_ports: std::collections::HashSet<u16> =
+            self.config.port_bindings.iter().map(|b| b.port).collect();
 
         let mut default_port = 8888;
         while default_port < 65535 {
-            if !existing_ports.contains(&default_port) && std::net::TcpListener::bind(format!("127.0.0.1:{}", default_port)).is_ok() {
+            if !existing_ports.contains(&default_port)
+                && std::net::TcpListener::bind(format!("127.0.0.1:{}", default_port)).is_ok()
+            {
                 break;
             }
             default_port += 1;
@@ -313,7 +324,6 @@ impl App {
         &self,
         options: &crate::ui::dialogs::ConfigDownloadOptions,
     ) -> anyhow::Result<()> {
-
         use std::fs;
 
         println!("=== Starting download_config_with_options ===");
@@ -336,16 +346,19 @@ impl App {
         // Generate configuration in the selected format
         let (content, extension) = match options.format {
             crate::ui::dialogs::ConfigFormat::Json => {
-                let json = config::generator::ConfigurationGenerator::generate_json(&filtered_config)?;
+                let json =
+                    config::generator::ConfigurationGenerator::generate_json(&filtered_config)?;
                 let content = serde_json::to_string_pretty(&json)?;
                 (content, "json")
             }
             crate::ui::dialogs::ConfigFormat::Yaml => {
-                let content = config::generator::ConfigurationGenerator::generate_yaml(&filtered_config)?;
+                let content =
+                    config::generator::ConfigurationGenerator::generate_yaml(&filtered_config)?;
                 (content, "yaml")
             }
             crate::ui::dialogs::ConfigFormat::Markdown => {
-                let content = config::generator::ConfigurationGenerator::generate_markdown(&filtered_config)?;
+                let content =
+                    config::generator::ConfigurationGenerator::generate_markdown(&filtered_config)?;
                 (content, "md")
             }
         };
@@ -364,13 +377,15 @@ impl App {
         // Write configuration to file
         fs::write(&file_path, content)?;
 
-        println!("✓ Configuration downloaded successfully to: {:?}", file_path);
+        println!(
+            "✓ Configuration downloaded successfully to: {:?}",
+            file_path
+        );
         println!("=== download_config_with_options completed ===");
         Ok(())
     }
 
     pub fn download_config_to(&self, target_dir: &std::path::Path) -> anyhow::Result<()> {
-
         use std::fs;
 
         println!("=== Starting download_config_to {:?} ===", target_dir);
@@ -412,7 +427,6 @@ impl App {
         println!("=== download_config completed ===");
         Ok(())
     }
-
 }
 
 pub fn greet(name: &str) -> String {

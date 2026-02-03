@@ -116,12 +116,11 @@ pub struct VerificationResponse {
     pub message: Option<String>,
 }
 
-async fn verify_action(
-    Json(payload): Json<VerificationRequest>,
-) -> Json<VerificationResponse> {
+async fn verify_action(Json(payload): Json<VerificationRequest>) -> Json<VerificationResponse> {
     println!("🚨 Verification requested for action: {}", payload.action);
 
-    let context_str = payload.context
+    let context_str = payload
+        .context
         .as_ref()
         .map(|c| c.to_string())
         .unwrap_or_else(|| "{}".to_string());
@@ -132,13 +131,16 @@ async fn verify_action(
         payload.action.replace("\"", "\\\""),
         payload.reason.replace("\"", "\\\"")
     );
-    let _ = std::process::Command::new("osascript").arg("-e").arg(notify_script).output();
+    let _ = std::process::Command::new("osascript")
+        .arg("-e")
+        .arg(notify_script)
+        .output();
 
     // 2. Show the actual UI dialog
     let (approved, message) = crate::ui::dialogs::show_verification_dialog(
         &payload.action,
         &payload.reason,
-        &context_str
+        &context_str,
     );
 
     let status = if approved { "approved" } else { "rejected" };

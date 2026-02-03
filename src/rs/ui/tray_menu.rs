@@ -69,20 +69,38 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
             // 1. Toggle
             let toggle_id = format!("port:{}", binding.port);
-            let toggle_label = if binding.enabled { "● Disable Port" } else { "○ Enable Port" };
+            let toggle_label = if binding.enabled {
+                "● Disable Port"
+            } else {
+                "○ Enable Port"
+            };
             port_submenu.append(&MenuItem::with_id(toggle_id, toggle_label, true, None))?;
 
             port_submenu.append(&PredefinedMenuItem::separator())?;
 
             // 2. Roles (manual symbols for alignment)
             let inst_id = format!("role:{}:Instruction", binding.port);
-            let is_inst = matches!(binding.role, crate::network::port_config::PortRole::Instruction);
-            let inst_label = if is_inst { "● Role: Instruction" } else { "○ Role: Instruction" };
+            let is_inst = matches!(
+                binding.role,
+                crate::network::port_config::PortRole::Instruction
+            );
+            let inst_label = if is_inst {
+                "● Role: Instruction"
+            } else {
+                "○ Role: Instruction"
+            };
             port_submenu.append(&MenuItem::with_id(inst_id, inst_label, true, None))?;
 
             let ver_id = format!("role:{}:Verification", binding.port);
-            let is_ver = matches!(binding.role, crate::network::port_config::PortRole::Verification);
-            let ver_label = if is_ver { "● Role: Verification" } else { "○ Role: Verification" };
+            let is_ver = matches!(
+                binding.role,
+                crate::network::port_config::PortRole::Verification
+            );
+            let ver_label = if is_ver {
+                "● Role: Verification"
+            } else {
+                "○ Role: Verification"
+            };
             port_submenu.append(&MenuItem::with_id(ver_id, ver_label, true, None))?;
 
             port_submenu.append(&PredefinedMenuItem::separator())?;
@@ -106,7 +124,6 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
     let download_config = MenuItem::with_id("cmd:download_config", "Download Config", true, None);
     menu.append(&download_config)?;
     println!("Download Config button added successfully");
-
 
     // 4. Global Commands
     let enable_all = MenuItem::with_id("cmd:enable_all", "Enable All Services", true, None);
