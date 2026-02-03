@@ -43,7 +43,6 @@ fn test_ports_include_endpoints() {
     }
 }
 
-
 #[test]
 fn test_default_config() {
     let config = NetworkConfig::default();

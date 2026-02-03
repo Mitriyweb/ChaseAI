@@ -39,7 +39,6 @@ pub struct ConfigDownloadOptions {
     pub save_path: std::path::PathBuf,
 }
 
-
 #[cfg(target_os = "macos")]
 pub fn show_add_port_dialog(default_port: u16) -> Option<PortConfig> {
     // Single-screen fast dialog: Field for Port, Buttons for Role
@@ -68,7 +67,11 @@ pub fn show_add_port_dialog(default_port: u16) -> Option<PortConfig> {
                         PortRole::Instruction
                     };
                     // Port is enabled by default when added via this dialog
-                    return Some(PortConfig { port, role, enabled: true });
+                    return Some(PortConfig {
+                        port,
+                        role,
+                        enabled: true,
+                    });
                 }
             }
             None
@@ -78,8 +81,22 @@ pub fn show_add_port_dialog(default_port: u16) -> Option<PortConfig> {
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn show_add_port_dialog() -> Option<PortConfig> {
+pub fn show_add_port_dialog(_default_port: u16) -> Option<PortConfig> {
     // Fallback for non-macOS platforms
+    None
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn show_download_config_dialog(
+    _config: &crate::config::network_config::NetworkConfig,
+) -> Option<ConfigDownloadOptions> {
+    None
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn show_manage_port_dialog(
+    _binding: &crate::network::port_config::PortBinding,
+) -> Option<PortAction> {
     None
 }
 
@@ -114,7 +131,13 @@ pub fn show_download_config_dialog(
         };
 
         let checkbox = if is_default { "[✓]" } else { "[  ]" };
-        let label = format!("{} Port {} ({:?}, {})", checkbox, b.port, b.role, if b.enabled { "Active" } else { "Inactive" });
+        let label = format!(
+            "{} Port {} ({:?}, {})",
+            checkbox,
+            b.port,
+            b.role,
+            if b.enabled { "Active" } else { "Inactive" }
+        );
         menu_items.push(label.clone());
         if is_default {
             default_selections.push(label);
@@ -160,8 +183,7 @@ pub fn show_download_config_dialog(
         end repeat
         return resultStr
         "#,
-        menu_str,
-        default_str
+        menu_str, default_str
     );
 
     let output = Command::new("osascript").arg("-e").arg(&script).output();
@@ -178,9 +200,13 @@ pub fn show_download_config_dialog(
 
             for line in result.lines() {
                 // Parse Format
-                if line.contains("JSON") { selected_format = ConfigFormat::Json; }
-                else if line.contains("YAML") { selected_format = ConfigFormat::Yaml; }
-                else if line.contains("Markdown") { selected_format = ConfigFormat::Markdown; }
+                if line.contains("JSON") {
+                    selected_format = ConfigFormat::Json;
+                } else if line.contains("YAML") {
+                    selected_format = ConfigFormat::Yaml;
+                } else if line.contains("Markdown") {
+                    selected_format = ConfigFormat::Markdown;
+                }
 
                 // Parse Ports
                 for b in &all_port_bindings {
@@ -255,7 +281,10 @@ pub fn show_download_config_dialog(
 
     // Truncate preview if too long (AppleScript has limits)
     let preview_display = if preview_text.len() > 1000 {
-        format!("{}...\n\n(Preview truncated, full content will be saved)", &preview_text[..1000])
+        format!(
+            "{}...\n\n(Preview truncated, full content will be saved)",
+            &preview_text[..1000]
+        )
     } else {
         preview_text.clone()
     };
@@ -269,7 +298,6 @@ pub fn show_download_config_dialog(
         "#,
         preview_display.replace("\"", "\\\"").replace("\n", "\\n")
     );
-
 
     let confirm_output = Command::new("osascript")
         .arg("-e")
@@ -307,7 +335,11 @@ pub fn show_manage_port_dialog(
 ) -> Option<PortAction> {
     use std::process::Command;
 
-    let status_action = if binding.enabled { "🔴 Disable Port" } else { "🟢 Enable Port" };
+    let status_action = if binding.enabled {
+        "🔴 Disable Port"
+    } else {
+        "🟢 Enable Port"
+    };
     let current_role = match binding.role {
         PortRole::Instruction => "Instruction",
         PortRole::Verification => "Verification",
@@ -333,8 +365,7 @@ pub fn show_manage_port_dialog(
             return "DELETE"
         end if
         "#,
-        status_action, binding.port, current_role, status_action,
-        status_action
+        status_action, binding.port, current_role, status_action, status_action
     );
 
     let output = Command::new("osascript").arg("-e").arg(&script).output();
@@ -401,5 +432,8 @@ pub fn show_verification_dialog(
     _reason: &str,
     _context: &str,
 ) -> (bool, Option<String>) {
-    (false, Some("Verification not supported on this platform".to_string()))
+    (
+        false,
+        Some("Verification not supported on this platform".to_string()),
+    )
 }

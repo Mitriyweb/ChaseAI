@@ -79,8 +79,18 @@ impl ConfigurationGenerator {
 
                 markdown.push_str(&format!("### Port `{}`\n\n", port_num));
                 markdown.push_str(&format!("- **Role**: `{}`\n", role));
-                markdown.push_str(&format!("- **Base URL**: `http://{}:{}`\n", interface, port_num));
-                markdown.push_str(&format!("- **Status**: {}\n\n", if enabled { "✅ Enabled" } else { "❌ Disabled" }));
+                markdown.push_str(&format!(
+                    "- **Base URL**: `http://{}:{}`\n",
+                    interface, port_num
+                ));
+                markdown.push_str(&format!(
+                    "- **Status**: {}\n\n",
+                    if enabled {
+                        "✅ Enabled"
+                    } else {
+                        "❌ Disabled"
+                    }
+                ));
 
                 if let Some(endpoints) = port["endpoints"].as_array() {
                     markdown.push_str("**Available Endpoints**:\n\n");
