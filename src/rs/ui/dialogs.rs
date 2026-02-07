@@ -161,13 +161,18 @@ pub fn show_download_config_dialog(
         port_menu_str, port_default_str
     );
 
-    let port_output = Command::new("osascript").arg("-e").arg(&port_script).output();
+    let port_output = Command::new("osascript")
+        .arg("-e")
+        .arg(&port_script)
+        .output();
     let mut selected_ports: Vec<u16> = Vec::new();
 
     match port_output {
         Ok(output) if output.status.success() => {
             let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if result == "CANCELLED" { return None; }
+            if result == "CANCELLED" {
+                return None;
+            }
             for line in result.lines() {
                 for b in &all_port_bindings {
                     if line.contains(&format!("Port {}", b.port)) {
@@ -196,7 +201,10 @@ pub fn show_download_config_dialog(
         return item 1 of formatChoice
     "#;
 
-    let format_output = Command::new("osascript").arg("-e").arg(format_script).output();
+    let format_output = Command::new("osascript")
+        .arg("-e")
+        .arg(format_script)
+        .output();
     let selected_format = match format_output {
         Ok(output) if output.status.success() => {
             let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
@@ -388,7 +396,10 @@ pub fn show_verification_dialog(
         .collect::<Vec<_>>()
         .join(", ");
 
-    let default_button = buttons.last().cloned().unwrap_or_else(|| "Approve".to_string());
+    let default_button = buttons
+        .last()
+        .cloned()
+        .unwrap_or_else(|| "Approve".to_string());
 
     // Simplified script: directly use activate without System Events check for maximum compatibility
     let script = format!(
@@ -413,10 +424,16 @@ pub fn show_verification_dialog(
             if let Some(pos) = buttons.iter().position(|b| b == &result) {
                 (pos, Some(format!("User selected '{}' via ChaseAI", result)))
             } else {
-                (buttons.len(), Some("Verification cancelled or button mismatch".to_string()))
+                (
+                    buttons.len(),
+                    Some("Verification cancelled or button mismatch".to_string()),
+                )
             }
         }
-        _ => (buttons.len(), Some("Verification cancelled or failed".to_string())),
+        _ => (
+            buttons.len(),
+            Some("Verification cancelled or failed".to_string()),
+        ),
     }
 }
 
