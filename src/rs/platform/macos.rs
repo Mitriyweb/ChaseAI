@@ -6,13 +6,23 @@ use tray_icon::menu::MenuEvent;
 pub fn run() -> anyhow::Result<()> {
     println!("Starting ChaseAI on macOS...");
 
-    // Initialize NSApplication
+    // Enforce activation policy BEFORE EventLoop (in case it respects current state)
     unsafe {
         let app = NSApp();
         app.setActivationPolicy_(
             NSApplicationActivationPolicy::NSApplicationActivationPolicyAccessory,
         );
-        println!("macOS activation policy set to menu bar only (Accessory)");
+    }
+
+    // Create tao event loop first (this initializes NSApp)
+    let event_loop = EventLoop::new();
+
+    // Enforce activation policy AFTER EventLoop (override if it reset it)
+    unsafe {
+        let app = NSApp();
+        app.setActivationPolicy_(
+            NSApplicationActivationPolicy::NSApplicationActivationPolicyAccessory,
+        );
     }
 
     // Create and initialize app
@@ -28,10 +38,6 @@ pub fn run() -> anyhow::Result<()> {
     }
 
     println!("Setting up event loop...");
-
-    // Create tao event loop for proper macOS integration
-    let event_loop = EventLoop::new();
-
     println!("Entering main loop...");
     println!("Application is running. Tray icon should be visible and clickable in menu bar.");
 
@@ -49,4 +55,8 @@ pub fn run() -> anyhow::Result<()> {
             }
         }
     });
+
+    // Note: run() theoretically diverts control, but for the Result signature:
+    #[allow(unreachable_code)]
+    Ok(())
 }
