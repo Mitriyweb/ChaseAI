@@ -364,8 +364,9 @@ impl App {
                 (content, "md")
             }
             crate::ui::dialogs::ConfigFormat::AgentRule => {
-                let content =
-                    config::generator::ConfigurationGenerator::generate_agent_rule(&filtered_config)?;
+                let content = config::generator::ConfigurationGenerator::generate_agent_rule(
+                    &filtered_config,
+                )?;
                 (content, "agent_rule")
             }
         };
@@ -376,7 +377,10 @@ impl App {
         }
 
         // Generate filename
-        let has_verification = filtered_config.port_bindings.iter().any(|b| b.role == crate::network::port_config::PortRole::Verification);
+        let has_verification = filtered_config
+            .port_bindings
+            .iter()
+            .any(|b| b.role == crate::network::port_config::PortRole::Verification);
 
         let filename = if (extension == "agent_rule" || extension == "md") && has_verification {
             "verification-protocol.md".to_string()
