@@ -221,6 +221,7 @@ impl App {
             ("chai_config.md", "md"),
             ("chai_config.json", "json"),
             ("chai_config.yaml", "yaml"),
+            ("verification-protocol.md", "agent_rule"),
         ];
 
         for (filename, ext) in manifests {
@@ -230,6 +231,7 @@ impl App {
                     "json" => ConfigurationGenerator::generate_json(&self.config)
                         .map(|v| serde_json::to_string_pretty(&v).unwrap_or_default()),
                     "yaml" => ConfigurationGenerator::generate_yaml(&self.config),
+                    "agent_rule" => ConfigurationGenerator::generate_agent_rule(&self.config),
                     _ => continue,
                 };
 
@@ -361,6 +363,11 @@ impl App {
                     config::generator::ConfigurationGenerator::generate_markdown(&filtered_config)?;
                 (content, "md")
             }
+            crate::ui::dialogs::ConfigFormat::AgentRule => {
+                let content =
+                    config::generator::ConfigurationGenerator::generate_agent_rule(&filtered_config)?;
+                (content, "agent_rule")
+            }
         };
 
         // Ensure directory exists
@@ -369,7 +376,13 @@ impl App {
         }
 
         // Generate filename
-        let filename = format!("chai_config.{}", extension);
+        let has_verification = filtered_config.port_bindings.iter().any(|b| b.role == crate::network::port_config::PortRole::Verification);
+
+        let filename = if (extension == "agent_rule" || extension == "md") && has_verification {
+            "verification-protocol.md".to_string()
+        } else {
+            format!("chai_config.{}", extension)
+        };
         let file_path = options.save_path.join(filename);
 
         println!("Writing to file: {:?}", file_path);
