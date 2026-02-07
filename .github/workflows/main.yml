@@ -10,6 +10,8 @@ jobs:
   validate-rust:
     name: Lint & Test Rust
     runs-on: ubuntu-latest
+    env:
+      CHASEAI_TEST_CONFIG_DIR: /tmp/chaseai-test-config
     steps:
       - uses: actions/checkout@v4
 

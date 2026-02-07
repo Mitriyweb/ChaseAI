@@ -3,12 +3,12 @@
     "description": "The control plane for multi-agent AI development.",
     "scripts": {
         "lint": "bun run lint:rust && bun run lint:md",
-        "lint:rust": "cargo clippy --all-targets --all-features -- -D warnings",
+        "lint:rust": "CHASEAI_TEST_CONFIG_DIR=/tmp/chaseai-test-config cargo clippy --all-targets --all-features -- -D warnings",
         "lint:md": "markdownlint-cli2 \"**/*.md\"",
         "fix:md": "markdownlint-cli2 --fix \"**/*.md\"",
-        "check:deps": "cargo +nightly udeps --all-targets",
+        "check:deps": "CHASEAI_TEST_CONFIG_DIR=/tmp/chaseai-test-config cargo +nightly udeps --all-targets",
         "test": "bun run test:rust",
-        "test:rust": "cargo test",
+        "test:rust": "CHASEAI_TEST_CONFIG_DIR=/tmp/chaseai-test-config cargo test",
         "start": "bun run start:app",
         "start:rust": "cargo run",
         "start:app": "./scripts/macos/run-app.sh",
@@ -25,5 +25,8 @@
     },
     "engines": {
         "bun": ">=1.0.0"
+    },
+    "overrides": {
+        "@isaacs/brace-expansion": "5.0.1"
     }
 }

@@ -76,3 +76,24 @@ fn test_real_save_load() -> Result<()> {
     std::env::remove_var("CHASEAI_TEST_CONFIG_DIR");
     Ok(())
 }
+
+#[test]
+fn test_verification_mode_documentation() {
+    let mut config = NetworkConfig::new();
+    config.port_bindings[1].enabled = true;
+
+    // Test Port mode
+    config.verification_mode = app::config::network_config::VerificationMode::Port;
+    let md = ConfigurationGenerator::generate_markdown(&config).unwrap();
+    assert!(md.contains("POST /verify"));
+    assert!(md.contains("http://127.0.0.1:9999"));
+    let rule = ConfigurationGenerator::generate_agent_rule(&config).unwrap();
+    assert!(rule.contains("POST http://127.0.0.1:9999/verify"));
+
+    // Test CLI mode
+    config.verification_mode = app::config::network_config::VerificationMode::Cli;
+    let md = ConfigurationGenerator::generate_markdown(&config).unwrap();
+    assert!(md.contains("chase --verification"));
+    let rule = ConfigurationGenerator::generate_agent_rule(&config).unwrap();
+    assert!(rule.contains("chase --verification"));
+}

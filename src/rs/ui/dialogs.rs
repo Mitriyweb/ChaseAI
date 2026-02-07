@@ -13,6 +13,7 @@ pub enum ConfigFormat {
     Json,
     Yaml,
     Markdown,
+    AgentRule,
 }
 
 impl ConfigFormat {
@@ -21,6 +22,7 @@ impl ConfigFormat {
             ConfigFormat::Json => "json",
             ConfigFormat::Yaml => "yaml",
             ConfigFormat::Markdown => "md",
+            ConfigFormat::AgentRule => "md",
         }
     }
 
@@ -29,6 +31,7 @@ impl ConfigFormat {
             ConfigFormat::Json => "JSON",
             ConfigFormat::Yaml => "YAML",
             ConfigFormat::Markdown => "Markdown",
+            ConfigFormat::AgentRule => "Agent Rule",
         }
     }
 }
@@ -115,100 +118,62 @@ pub fn show_download_config_dialog(
         return None;
     }
 
-    // Prepare list of items
-    let mut menu_items: Vec<String> = Vec::new();
-    let mut default_selections: Vec<String> = Vec::new();
+    // Step 1: Select Ports
+    let mut port_menu_items: Vec<String> = Vec::new();
+    let mut port_default_selections: Vec<String> = Vec::new();
 
-    // 1. Ports
-    menu_items.push("📦 SELECT PORTS (Hold Cmd to pick many)".to_string());
     let mut roles_seen = std::collections::HashSet::new();
     for b in &all_port_bindings {
-        let is_default = if !roles_seen.contains(&b.role) {
+        let is_default = b.enabled && !roles_seen.contains(&b.role);
+        if is_default {
             roles_seen.insert(b.role);
-            true
-        } else {
-            false
-        };
+        }
 
-        let checkbox = if is_default { "[✓]" } else { "[  ]" };
         let label = format!(
             "{} Port {} ({:?}, {})",
-            checkbox,
+            if is_default { "[✓]" } else { "[  ]" },
             b.port,
             b.role,
             if b.enabled { "Active" } else { "Inactive" }
         );
-        menu_items.push(label.clone());
+        port_menu_items.push(label.clone());
         if is_default {
-            default_selections.push(label);
+            port_default_selections.push(label);
         }
     }
 
-    // 2. Format
-    menu_items.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".to_string());
-    menu_items.push("📄 SELECT FORMAT".to_string());
+    let port_menu_str = port_menu_items.join("\", \"");
+    let port_default_str = port_default_selections.join("\", \"");
 
-    let formats = vec![
-        (ConfigFormat::Json, "JSON"),
-        (ConfigFormat::Yaml, "YAML"),
-        (ConfigFormat::Markdown, "Markdown"),
-    ];
-
-    for (fmt, name) in formats {
-        let is_default = fmt == ConfigFormat::Markdown;
-        let checkbox = if is_default { "[✓]" } else { "[  ]" };
-        let label = format!("{} {}", checkbox, name);
-        menu_items.push(label.clone());
-        if is_default {
-            default_selections.push(label);
-        }
-    }
-    menu_items.push("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━".to_string());
-
-    let menu_str = menu_items.join("\", \"");
-    let default_str = default_selections.join("\", \"");
-
-    let script = format!(
+    let port_script = format!(
         r#"
         activate
         set menuList to {{"{}"}}
         set defaultItems to {{"{}"}}
-        set choices to choose from list menuList with prompt "Configure Download (Hold Cmd to select multiple):" default items defaultItems OK button name "Download" cancel button name "Cancel" with multiple selections allowed
-        if choices is false then
-            return "CANCELLED"
-        end if
+        set choices to choose from list menuList with prompt "Select PORTS to include (Hold Cmd for multiple):" default items defaultItems OK button name "Next" cancel button name "Cancel" with multiple selections allowed
+        if choices is false then return "CANCELLED"
         set resultStr to ""
         repeat with choice in choices
             set resultStr to resultStr & choice & "\n"
         end repeat
         return resultStr
         "#,
-        menu_str, default_str
+        port_menu_str, port_default_str
     );
 
-    let output = Command::new("osascript").arg("-e").arg(&script).output();
-
+    let port_output = Command::new("osascript")
+        .arg("-e")
+        .arg(&port_script)
+        .output();
     let mut selected_ports: Vec<u16> = Vec::new();
-    let mut selected_format = ConfigFormat::Markdown;
 
-    match output {
+    match port_output {
         Ok(output) if output.status.success() => {
             let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
             if result == "CANCELLED" {
                 return None;
             }
-
             for line in result.lines() {
-                // Parse Format
-                if line.contains("JSON") {
-                    selected_format = ConfigFormat::Json;
-                } else if line.contains("YAML") {
-                    selected_format = ConfigFormat::Yaml;
-                } else if line.contains("Markdown") {
-                    selected_format = ConfigFormat::Markdown;
-                }
-
-                // Parse Ports
                 for b in &all_port_bindings {
                     if line.contains(&format!("Port {}", b.port)) {
                         selected_ports.push(b.port);
@@ -226,6 +191,34 @@ pub fn show_download_config_dialog(
             .output();
         return None;
     }
+
+    // Step 2: Select Format
+    let format_script = r#"
+        activate
+        set formatChoices to {"JSON", "YAML", "Markdown", "Agent Rule"}
+        set formatChoice to choose from list formatChoices with prompt "Select Export Format:" default items {"Agent Rule"} OK button name "Next" cancel button name "Cancel"
+        if formatChoice is false then return "CANCELLED"
+        return item 1 of formatChoice
+    "#;
+
+    let format_output = Command::new("osascript")
+        .arg("-e")
+        .arg(format_script)
+        .output();
+    let selected_format = match format_output {
+        Ok(output) if output.status.success() => {
+            let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            match result.as_str() {
+                "JSON" => ConfigFormat::Json,
+                "YAML" => ConfigFormat::Yaml,
+                "Markdown" => ConfigFormat::Markdown,
+                "Agent Rule" => ConfigFormat::AgentRule,
+                "CANCELLED" => return None,
+                _ => ConfigFormat::Markdown,
+            }
+        }
+        _ => return None,
+    };
 
     let format = selected_format;
 
@@ -275,6 +268,10 @@ pub fn show_download_config_dialog(
         }
         ConfigFormat::Markdown => {
             crate::config::generator::ConfigurationGenerator::generate_markdown(&preview_config)
+                .unwrap_or_else(|_| "Error generating preview".to_string())
+        }
+        ConfigFormat::AgentRule => {
+            crate::config::generator::ConfigurationGenerator::generate_agent_rule(&preview_config)
                 .unwrap_or_else(|_| "Error generating preview".to_string())
         }
     };
@@ -390,25 +387,33 @@ pub fn show_verification_dialog(
     action: &str,
     reason: &str,
     context_str: &str,
-) -> (bool, Option<String>) {
+    buttons: &[String],
+    task_id: &str,
+) -> (usize, Option<String>) {
+    let buttons_list = buttons
+        .iter()
+        .map(|b| format!("\"{}\"", b))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let default_button = buttons
+        .last()
+        .cloned()
+        .unwrap_or_else(|| "Approve".to_string());
+
+    // Simplified script: directly use activate without System Events check for maximum compatibility
     let script = format!(
         r#"
-        try
-            tell application "System Events" to set frontmost of every process whose name is "chase-ai" to true
-        end try
         activate
-        set alertTitle to "🚨 AI Verification Request"
-        set alertMessage to "Action: " & "{}" & "\n\nReason: " & "{}" & "\n\nContext: " & "{}" & "\n\nDo you approve this execution?"
-        set userResponse to display alert alertTitle message alertMessage as critical buttons {{"Reject", "Approve"}} default button "Approve"
-        if button returned of userResponse is "Approve" then
-            return "APPROVED"
-        else
-            return "REJECTED"
-        end if
+        set userResponse to display alert "🚨 {} | ChaseAI" message "Action: " & "{}" & "\n\nReason: " & "{}" & "\n\nContext: " & "{}" as critical buttons {{{}}} default button "{}"
+        return button returned of userResponse
         "#,
+        task_id,
         action.replace("\"", "\\\""),
         reason.replace("\"", "\\\""),
-        context_str.replace("\"", "\\\"")
+        context_str.replace("\"", "\\\""),
+        buttons_list,
+        default_button
     );
 
     let output = Command::new("osascript").arg("-e").arg(script).output();
@@ -416,13 +421,19 @@ pub fn show_verification_dialog(
     match output {
         Ok(output) if output.status.success() => {
             let result = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            if result == "APPROVED" {
-                (true, Some("User approved action via ChaseAI".to_string()))
+            if let Some(pos) = buttons.iter().position(|b| b == &result) {
+                (pos, Some(format!("User selected '{}' via ChaseAI", result)))
             } else {
-                (false, Some("User rejected action via ChaseAI".to_string()))
+                (
+                    buttons.len(),
+                    Some("Verification cancelled or button mismatch".to_string()),
+                )
             }
         }
-        _ => (false, Some("Verification cancelled or failed".to_string())),
+        _ => (
+            buttons.len(),
+            Some("Verification cancelled or failed".to_string()),
+        ),
     }
 }
 
@@ -431,9 +442,11 @@ pub fn show_verification_dialog(
     _action: &str,
     _reason: &str,
     _context: &str,
-) -> (bool, Option<String>) {
+    _buttons: &[String],
+    _task_id: &str,
+) -> (usize, Option<String>) {
     (
-        false,
+        0,
         Some("Verification not supported on this platform".to_string()),
     )
 }

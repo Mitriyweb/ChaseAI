@@ -68,11 +68,11 @@ It MUST have a `// SAFETY: <reason>` comment.
 
 ---
 
+---
+
 ## Testing Standards
 
-- **Unit Tests**: MUST be in `mod tests` with `#[cfg(test)]` at the bottom of the file.
-- **Integration Tests**: In `tests/` directory.
-- **Doc Tests**: Required for public APIs.
+Refer to [.agent/rules/rust-testing-standards.md](file:///Users/dmytro.zvieriev/sandbox/ChaseAI/.agent/rules/rust-testing-standards.md) for complete details on test organization, naming, and guidelines.
 
 ## Compiler & Linter Warnings
 

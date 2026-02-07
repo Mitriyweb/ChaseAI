@@ -5,10 +5,22 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq)]
+pub enum VerificationMode {
+    Port,
+    Cli,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct NetworkConfig {
     pub default_interface: InterfaceType,
     pub port_bindings: Vec<PortBinding>,
+    #[serde(default = "default_verification_mode")]
+    pub verification_mode: VerificationMode,
+}
+
+fn default_verification_mode() -> VerificationMode {
+    VerificationMode::Port
 }
 
 impl NetworkConfig {
@@ -38,6 +50,7 @@ impl NetworkConfig {
         Self {
             default_interface: InterfaceType::Loopback,
             port_bindings: default_bindings,
+            verification_mode: VerificationMode::Port,
         }
     }
 

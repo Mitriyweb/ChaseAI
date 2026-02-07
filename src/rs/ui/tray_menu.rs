@@ -119,6 +119,35 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     menu.append(&PredefinedMenuItem::separator())?;
 
+    // Verification Mode Submenu
+    let mode_menu = Submenu::new("Verification Mode", true);
+    let is_port = matches!(
+        config.verification_mode,
+        crate::config::network_config::VerificationMode::Port
+    );
+    let is_cli = matches!(
+        config.verification_mode,
+        crate::config::network_config::VerificationMode::Cli
+    );
+
+    mode_menu.append(&CheckMenuItem::with_id(
+        "mode:port",
+        "Port (HTTP)",
+        true,
+        is_port,
+        None,
+    ))?;
+    mode_menu.append(&CheckMenuItem::with_id(
+        "mode:cli",
+        "CLI (chase --verification)",
+        true,
+        is_cli,
+        None,
+    ))?;
+    menu.append(&mode_menu)?;
+
+    menu.append(&PredefinedMenuItem::separator())?;
+
     // 4. Download Config Button
     println!("Adding Download Config button to menu");
     let download_config = MenuItem::with_id("cmd:download_config", "Download Config", true, None);

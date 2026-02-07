@@ -107,6 +107,8 @@ pub struct VerificationRequest {
     pub action: String,
     pub reason: String,
     pub context: Option<serde_json::Value>,
+    pub buttons: Option<Vec<String>>,
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, serde::Serialize)]
@@ -116,8 +118,28 @@ pub struct VerificationResponse {
     pub message: Option<String>,
 }
 
-async fn verify_action(Json(payload): Json<VerificationRequest>) -> Json<VerificationResponse> {
+async fn verify_action(
+    State(manager): State<Arc<Mutex<ContextManager>>>,
+    Json(payload): Json<VerificationRequest>,
+) -> Json<VerificationResponse> {
     println!("🚨 Verification requested for action: {}", payload.action);
+
+    // 1. Check if we already have an active authorized session for this agent
+    if let Some(sid) = &payload.session_id {
+        let mgr = manager.lock().unwrap();
+        if let Some((expires, _allowed)) = mgr.sessions.get(sid) {
+            if *expires > chrono::Utc::now() {
+                // Check if the current action is within the scope of allowed actions in this session
+                // For simplicity, if the session exists, we assume it covers the agent's work
+                println!("✅ Action automatically approved via session: {}", sid);
+                return Json(VerificationResponse {
+                    status: "approved".to_string(),
+                    verification_id: sid.clone(),
+                    message: Some("Automatically approved via active session".to_string()),
+                });
+            }
+        }
+    }
 
     let context_str = payload
         .context
@@ -125,29 +147,53 @@ async fn verify_action(Json(payload): Json<VerificationRequest>) -> Json<Verific
         .map(|c| c.to_string())
         .unwrap_or_else(|| "{}".to_string());
 
-    // 1. Show a tray notification first
-    let notify_script = format!(
-        "display notification \"Action: {}\" with title \"🚨 ChaseAI: Verification Needed\" subtitle \"Reason: {}\"",
-        payload.action.replace("\"", "\\\""),
-        payload.reason.replace("\"", "\\\"")
-    );
-    let _ = std::process::Command::new("osascript")
-        .arg("-e")
-        .arg(notify_script)
-        .output();
+    let buttons = payload.buttons.unwrap_or_else(|| {
+        vec![
+            "Reject".to_string(),
+            "Approve Once".to_string(),
+            "Approve Session".to_string(),
+        ]
+    });
 
-    // 2. Show the actual UI dialog
-    let (approved, message) = crate::ui::dialogs::show_verification_dialog(
+    let task_id = payload
+        .context
+        .as_ref()
+        .and_then(|c| c.get("task_id"))
+        .and_then(|v| v.as_str())
+        .unwrap_or("CHASE-TASK");
+
+    // Show the UI dialog
+    let (approved_idx, message) = crate::ui::dialogs::show_verification_dialog(
         &payload.action,
         &payload.reason,
         &context_str,
+        &buttons,
+        task_id,
     );
 
-    let status = if approved { "approved" } else { "rejected" };
+    let mut status = if approved_idx < buttons.len() {
+        buttons[approved_idx].to_lowercase()
+    } else {
+        "cancelled".to_string()
+    };
+
     let verification_id = format!("v-{}", chrono::Utc::now().timestamp());
 
+    // 2. If user chose "Approve Session", register it in the manager
+    if status.contains("session") {
+        let mut mgr = manager.lock().unwrap();
+        // Session valid for 1 hour
+        let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+        mgr.sessions
+            .insert(verification_id.clone(), (expires, vec![]));
+        println!("🎟 Session created: {}", verification_id);
+        status = "approved_session".to_string();
+    } else if status.contains("approve") {
+        status = "approved".to_string();
+    }
+
     Json(VerificationResponse {
-        status: status.to_string(),
+        status,
         verification_id,
         message,
     })
@@ -192,6 +238,11 @@ async fn get_config(
             let markdown = ConfigurationGenerator::generate_markdown(&config)
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
             Ok((StatusCode::OK, markdown))
+        }
+        "agent_rule" | "rule" => {
+            let rule = ConfigurationGenerator::generate_agent_rule(&config)
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok((StatusCode::OK, rule))
         }
         _ => {
             // Default to JSON
