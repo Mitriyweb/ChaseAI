@@ -6,6 +6,7 @@ use app::network::port_config::{PortBinding, PortRole};
 fn create_test_config() -> NetworkConfig {
     NetworkConfig {
         default_interface: InterfaceType::Loopback,
+        verification_mode: app::config::network_config::VerificationMode::Port,
         port_bindings: vec![
             PortBinding {
                 port: 8090,

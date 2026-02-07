@@ -100,10 +100,18 @@ impl ConfigurationGenerator {
                 ));
 
                 if role == "Verification" {
-                    markdown.push_str("- **Mandatory Usage**: All system-altering actions, file modifications in sensitive directories, or long-running commands **MUST** be approved via this port.\n\n");
-                    markdown.push_str("**Key Concepts**:\n");
-                    markdown.push_str("1. **Service Readiness**: Use `GET /health` to ensure the bridge to the user is active. If health returns an error, the user cannot receive your requests.\n");
-                    markdown.push_str("2. **Action Delegation**: Use `POST /verify` to delegate a command or decision to the human's chat interface. This triggers a native system alert on the user's OS.\n\n");
+                    if network_config.verification_mode
+                        == crate::config::network_config::VerificationMode::Cli
+                    {
+                        markdown.push_str("- **Mandatory Usage**: All system-altering actions, file modifications in sensitive directories, or long-running commands **MUST** be approved via the CLI.\n\n");
+                        markdown.push_str("**Key Concepts**:\n");
+                        markdown.push_str("1. **Action Delegation**: Use `chase --verification '<JSON>'` to delegate a command or decision to the human's chat interface. This triggers a native system alert on the user's OS.\n\n");
+                    } else {
+                        markdown.push_str("- **Mandatory Usage**: All system-altering actions, file modifications in sensitive directories, or long-running commands **MUST** be approved via this port.\n\n");
+                        markdown.push_str("**Key Concepts**:\n");
+                        markdown.push_str("1. **Service Readiness**: Use `GET /health` to ensure the bridge to the user is active. If health returns an error, the user cannot receive your requests.\n");
+                        markdown.push_str("2. **Action Delegation**: Use `POST /verify` to delegate a command or decision to the human's chat interface. This triggers a native system alert on the user's OS.\n\n");
+                    }
                 } else {
                     markdown.push('\n');
                 }
@@ -197,20 +205,32 @@ impl ConfigurationGenerator {
                 );
 
                 markdown.push_str("## 🛡 Strict Autonomous Procedure\n\n");
-                markdown.push_str(&format!("1. **Proactive Hand-off**: When you plan a restricted operation, call `POST http://{}:{}/verify` immediately.\n", binding.interface.ip_address, binding.port));
+                if network_config.verification_mode
+                    == crate::config::network_config::VerificationMode::Cli
+                {
+                    markdown.push_str("1. **Proactive Hand-off**: When you plan a restricted operation, call `chase --verification '<JSON>'` immediately.\n");
+                } else {
+                    markdown.push_str(&format!("1. **Proactive Hand-off**: When you plan a restricted operation, call `POST http://{}:{}/verify` immediately.\n", binding.interface.ip_address, binding.port));
+                }
                 markdown.push_str("2. **Do Not Ask First**: Do not wait for the user to tell you to ask permission in the chat. Initiating the bridge call is your standard procedure.\n");
                 markdown.push_str("3. **Wait for Approval**: Always check the response `status`. Only proceed if it is `approved` or `approved_session`.\n");
                 markdown.push_str("4. **Session Automation**: If the status is `approved_session`, store the `verification_id` and use it as `session_id` in subsequent requests to automate the flow for 1 hour.\n\n");
 
                 markdown.push_str("## 🛠 Endpoint Reference\n\n");
-                markdown.push_str(&format!(
-                    "- `GET http://{}:{}/health`: Check if the bridge is alive.\n",
-                    binding.interface.ip_address, binding.port
-                ));
-                markdown.push_str(&format!(
-                    "- `POST http://{}:{}/verify`: Request approval for an action.\n",
-                    binding.interface.ip_address, binding.port
-                ));
+                if network_config.verification_mode
+                    == crate::config::network_config::VerificationMode::Cli
+                {
+                    markdown.push_str("- `chase --verification '<JSON>'`: CLI command to request approval for an action.\n");
+                } else {
+                    markdown.push_str(&format!(
+                        "- `GET http://{}:{}/health`: Check if the bridge is alive.\n",
+                        binding.interface.ip_address, binding.port
+                    ));
+                    markdown.push_str(&format!(
+                        "- `POST http://{}:{}/verify`: Request approval for an action.\n",
+                        binding.interface.ip_address, binding.port
+                    ));
+                }
                 markdown.push_str(&format!(
                     "- `GET http://{}:{}/context`: Retrieve capability constraints.\n\n",
                     binding.interface.ip_address, binding.port
