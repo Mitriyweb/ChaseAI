@@ -64,6 +64,8 @@ regex = "1.10.0"
 image = "0.25.1"
 tray-icon = "0.14.3"
 chrono = { version = "0.4.38", features = ["serde"] }
+clap = { version = "4.5.4", features = ["derive"] }
+reqwest = { version = "0.12.4", features = ["json", "blocking"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 cocoa = "0.25.0"
@@ -71,4 +73,3 @@ tao = "0.28.1"
 
 [dev-dependencies]
 tempfile = "3.10.1"
-reqwest = { version = "0.12.4", features = ["json"] }

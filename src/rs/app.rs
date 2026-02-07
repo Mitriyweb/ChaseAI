@@ -168,6 +168,13 @@ impl App {
         } else if id == "cmd:download_config" {
             println!("Download config requested");
             self.download_config();
+        } else if let Some(mode) = id.strip_prefix("mode:") {
+            println!("Verification mode change requested: {}", mode);
+            self.config.verification_mode = match mode {
+                "cli" => crate::config::network_config::VerificationMode::Cli,
+                _ => crate::config::network_config::VerificationMode::Port,
+            };
+            changed = true;
         } else {
             println!("Unknown menu event: {}", id);
         }
