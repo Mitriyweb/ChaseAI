@@ -10,6 +10,11 @@ description = "Controlled Local AI Execution Platform"
 name = "app"
 path = "src/rs/app.rs"
 
+[features]
+default = []
+beta = []
+dev = ["beta"]
+
 [[test]]
 name = "app"
 path = "src/test/rs/app.rs"
@@ -45,6 +50,10 @@ path = "src/test/rs/instruction.rs"
 [[test]]
 name = "config_filtering"
 path = "src/test/rs/config_filtering.rs"
+
+[[test]]
+name = "version_check"
+path = "src/test/rs/version_check.rs"
 
 
 [[bin]]

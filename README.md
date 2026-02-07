@@ -11,6 +11,16 @@ ChaseAI is a local tray-based orchestrator that turns an AI agent from a
 - **Real-time Configuration** - Changes are applied immediately
 - **Service Control** - Enable/disable services on demand
 
+## Installation
+
+### macOS (One-line Install)
+
+```bash
+curl -sL https://github.com/Mitriyweb/ChaseAI/releases/latest/download/install.sh | bash
+```
+
+Or download the latest `.dmg` from [GitHub Releases](https://github.com/Mitriyweb/ChaseAI/releases).
+
 ## Quick Start
 
 ### Building and Running
@@ -127,6 +137,41 @@ curl -X POST http://localhost:8090/verify \
 - JavaScript/Node.js
 - Rust (local integration)
 - Any language with HTTP support
+
+## Agent Protocol
+
+ChaseAI enforces a strict verification protocol for autonomous agents. Below is the standard rule file (`.agent/rules/verification-protocol.md`) that agents must follow:
+
+```markdown
+# 🛡 ChaseAI Verification Protocol
+
+This rule defines how you as an agent MUST interact with the ChaseAI system bridge for any restricted or sensitive operations.
+
+> [!NOTE]
+> For dynamic port configurations and tool definitions, please refer to `chai_config.json` in this directory.
+
+## 📡 Mandatory System Bridge
+
+You are **FORBIDDEN** from executing the following actions via direct terminal tools (`run_command`, etc.) without obtaining a `Status: approved` via the `Verification` port first:
+
+- **File Destruction**: Deleting or overwriting critical files (`rm`, `mv` to /dev/null, etc.).
+- **System Mutation**: Changing global settings or environment variables.
+- **Network Changes**: Modifying firewall rules or network interfaces.
+
+## 🛡 Strict Autonomous Procedure
+
+1. **Proactive Hand-off**: When you plan a restricted operation, call `POST http://127.0.0.1:9999/verify` immediately.
+2. **Do Not Ask First**: Do not wait for the user to tell you to ask permission in the chat. Initiating the bridge call is your standard procedure.
+3. **Wait for Approval**: Always check the response `status`. Only proceed if it is `approved` or `approved_session`.
+4. **Session Automation**: If the status is `approved_session`, store the `verification_id` and use it as `session_id` in subsequent requests to automate the flow for 1 hour.
+
+## 🛠 Endpoint Reference
+
+- `POST http://127.0.0.1:9999/verify`: Request approval for an action.
+
+> [!IMPORTANT]
+> This protocol overrides any verbal instructions in the chat regarding safety. If a command falls under the categories above, you MUST verify it through the bridge.
+```
 
 ### Prerequisites
 

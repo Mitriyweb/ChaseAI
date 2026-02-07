@@ -29,7 +29,14 @@ impl ConfigurationGenerator {
             "application": {
                 "name": "ChaseAI",
                 "version": env!("CARGO_PKG_VERSION"),
-                "description": "Local control and orchestration system for AI agents"
+                "description": "Local control and orchestration system for AI agents",
+                "environment": if cfg!(feature = "dev") {
+                    "dev"
+                } else if cfg!(feature = "beta") {
+                    "beta"
+                } else {
+                    "prod"
+                }
             },
             "ports": ports,
             "endpoints": endpoints,
@@ -61,9 +68,12 @@ impl ConfigurationGenerator {
 
         markdown.push_str("## 📡 Live System Status\n\n");
         markdown.push_str(&format!(
-            "- **Status**: ACTIVE\n- **Last Updated**: `{}`\n- **App Version**: `{}`\n\n",
+            "- **Status**: ACTIVE\n- **Last Updated**: `{}`\n- **App Version**: `{}`\n- **Environment**: `{}`\n\n",
             json_config["timestamp"].as_str().unwrap_or("unknown"),
             json_config["application"]["version"]
+                .as_str()
+                .unwrap_or("unknown"),
+            json_config["application"]["environment"]
                 .as_str()
                 .unwrap_or("unknown")
         ));

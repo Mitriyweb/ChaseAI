@@ -9,13 +9,23 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/../.."
 
-# Build the release binary if it doesn't exist
-if [ ! -f "target/release/chase-ai" ]; then
-    echo "Building release binary..."
-    cargo build --release
+# Determine environment and features
+ENV=${1:-prod}
+FEATURES=""
+
+if [ "$ENV" == "beta" ]; then
+    FEATURES="--features beta"
+    echo "Building for BETA environment..."
+elif [ "$ENV" == "dev" ]; then
+    FEATURES="--features dev"
+    echo "Building for DEV environment..."
 else
-    echo "Using existing release binary."
+    echo "Building for PROD environment..."
 fi
+
+# Build the release binary
+echo "Building release binary..."
+cargo build --release $FEATURES
 
 # Skip macOS-specific app bundle creation on non-macOS platforms
 if [[ "$OSTYPE" != "darwin"* ]]; then

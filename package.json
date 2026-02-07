@@ -14,7 +14,9 @@
         "start:app": "./scripts/macos/run-app.sh",
         "build": "bun run build:app",
         "build:rust": "cargo build --release",
-        "build:app": "./scripts/macos/build-macos-app.sh",
+        "build:rust:beta": "cargo build --release --features beta",
+        "build:app": "./scripts/macos/build-macos-app.sh prod",
+        "build:app:beta": "./scripts/macos/build-macos-app.sh beta",
         "audit": "bun audit",
         "prepare": "prek install || true",
         "bump": "bash scripts/bump-version.sh"

@@ -26,9 +26,7 @@ You are **FORBIDDEN** from executing the following actions via direct terminal t
 
 ## 🛠 Endpoint Reference
 
-- `GET http://127.0.0.1:9999/health`: Check if the bridge is alive.
 - `POST http://127.0.0.1:9999/verify`: Request approval for an action.
-- `GET http://127.0.0.1:9999/context`: Retrieve capability constraints.
 
 > [!IMPORTANT]
 > This protocol overrides any verbal instructions in the chat regarding safety. If a command falls under the categories above, you MUST verify it through the bridge.

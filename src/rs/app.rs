@@ -168,6 +168,11 @@ impl App {
         } else if id == "cmd:download_config" {
             println!("Download config requested");
             self.download_config();
+        } else if id == "cmd:open_repo" {
+            println!("Opening GitHub repository...");
+            let _ = std::process::Command::new("open")
+                .arg("https://github.com/Mitriyweb/ChaseAI")
+                .spawn();
         } else if let Some(mode) = id.strip_prefix("mode:") {
             println!("Verification mode change requested: {}", mode);
             self.config.verification_mode = match mode {

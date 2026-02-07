@@ -124,22 +124,22 @@ async fn verify_action(
 ) -> Json<VerificationResponse> {
     println!("🚨 Verification requested for action: {}", payload.action);
 
-    // 1. Check if we already have an active authorized session for this agent
-    if let Some(sid) = &payload.session_id {
-        let mgr = manager.lock().unwrap();
-        if let Some((expires, _allowed)) = mgr.sessions.get(sid) {
-            if *expires > chrono::Utc::now() {
-                // Check if the current action is within the scope of allowed actions in this session
-                // For simplicity, if the session exists, we assume it covers the agent's work
-                println!("✅ Action automatically approved via session: {}", sid);
-                return Json(VerificationResponse {
-                    status: "approved".to_string(),
-                    verification_id: sid.clone(),
-                    message: Some("Automatically approved via active session".to_string()),
-                });
-            }
-        }
-    }
+    // 1. Check if we already have an active authorized session for this agent - not ready yet
+    // if let Some(sid) = &payload.session_id {
+    //     let mgr = manager.lock().unwrap();
+    //     if let Some((expires, _allowed)) = mgr.sessions.get(sid) {
+    //         if *expires > chrono::Utc::now() {
+    //             // Check if the current action is within the scope of allowed actions in this session
+    //             // For simplicity, if the session exists, we assume it covers the agent's work
+    //             println!("✅ Action automatically approved via session: {}", sid);
+    //             return Json(VerificationResponse {
+    //                 status: "approved".to_string(),
+    //                 verification_id: sid.clone(),
+    //                 message: Some("Automatically approved via active session".to_string()),
+    //             });
+    //         }
+    //     }
+    // }
 
     let context_str = payload
         .context
