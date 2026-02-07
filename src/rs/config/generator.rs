@@ -191,6 +191,9 @@ impl ConfigurationGenerator {
         markdown.push_str("# 🛡 ChaseAI Verification Protocol\n\n");
         markdown.push_str("This rule defines how you as an agent MUST interact with the ChaseAI system bridge for any restricted or sensitive operations.\n\n");
 
+        markdown.push_str("> [!NOTE]\n");
+        markdown.push_str("> For dynamic port configurations and tool definitions, please refer to `chai_config.json` in this directory.\n\n");
+
         markdown.push_str("## 📡 Mandatory System Bridge\n\n");
         markdown.push_str("You are **FORBIDDEN** from executing the following actions via direct terminal tools (`run_command`, etc.) without obtaining a `Status: approved` via the `Verification` port first:\n\n");
 
@@ -272,21 +275,6 @@ impl ConfigurationGenerator {
         let mut endpoints = BTreeMap::new();
 
         endpoints.insert(
-            "/context".to_string(),
-            json!({
-                "method": "GET",
-                "description": "Retrieve instruction context for this port",
-                "response": {
-                    "system": "ChaseAI-OS",
-                    "role": "execution-agent",
-                    "base_instruction": "Execute tasks within the provided workspace scope...",
-                    "allowed_actions": ["read_file", "write_file", "run_command"],
-                    "verification_required": true
-                }
-            }),
-        );
-
-        endpoints.insert(
             "/verify".to_string(),
             json!({
                 "method": "POST",
@@ -302,18 +290,6 @@ impl ConfigurationGenerator {
                     "status": "approved_session",
                     "verification_id": "v-unique-session-id",
                     "message": "Session created. Use this verification_id as session_id for future requests."
-                }
-            }),
-        );
-
-        endpoints.insert(
-            "/health".to_string(),
-            json!({
-                "method": "GET",
-                "description": "Verifies the verification service (and the connection to the human) is online.",
-                "response": {
-                    "status": "healthy",
-                    "timestamp": "2026-02-03T19:15:00Z"
                 }
             }),
         );
@@ -342,35 +318,16 @@ impl ConfigurationGenerator {
     /// Get endpoints available for a specific port role
     fn get_endpoints_for_role(role: PortRole) -> Vec<Value> {
         match role {
-            PortRole::Instruction => vec![
-                json!({
-                    "path": "/context",
-                    "method": "GET",
-                    "description": "Retrieve instruction context"
-                }),
-                json!({
-                    "path": "/config",
-                    "method": "GET",
-                    "description": "Retrieve configuration"
-                }),
-                json!({
-                    "path": "/health",
-                    "method": "GET",
-                    "description": "Health check"
-                }),
-            ],
-            PortRole::Verification => vec![
-                json!({
-                    "path": "/verify",
-                    "method": "POST",
-                    "description": "Trigger User Approval: Sends the requested action directly to the user's chat."
-                }),
-                json!({
-                    "path": "/health",
-                    "method": "GET",
-                    "description": "Availability Heartbeat: Confirm that the user-interaction service is available."
-                }),
-            ],
+            PortRole::Instruction => vec![json!({
+                "path": "/config",
+                "method": "GET",
+                "description": "Retrieve configuration"
+            })],
+            PortRole::Verification => vec![json!({
+                "path": "/verify",
+                "method": "POST",
+                "description": "Trigger User Approval: Sends the requested action directly to the user's chat."
+            })],
         }
     }
 }
