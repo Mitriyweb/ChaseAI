@@ -36,7 +36,10 @@ fn handle_verification(data: String) -> anyhow::Result<()> {
             anyhow::anyhow!("No enabled verification port found. Is ChaseAI running and configured with a verification port?")
         })?;
 
-    let url = format!("http://{}:{}/verify", binding.interface.ip_address, binding.port);
+    let url = format!(
+        "http://{}:{}/verify",
+        binding.interface.ip_address, binding.port
+    );
 
     // 3. Parse data to ensure it's valid JSON
     let json_data: serde_json::Value = serde_json::from_str(&data)
