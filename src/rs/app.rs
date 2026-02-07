@@ -394,12 +394,23 @@ impl App {
         } else {
             format!("chai_config.{}", extension)
         };
-        let file_path = options.save_path.join(filename);
+        let file_path = options.save_path.join(&filename);
 
         println!("Writing to file: {:?}", file_path);
 
         // Write configuration to file
         fs::write(&file_path, content)?;
+
+        // If we generated the verification protocol, we MUST also generate the accompanying JSON config
+        if filename == "verification-protocol.md" {
+            println!("Generating side-car chai_config.json for verification protocol...");
+            let json = config::generator::ConfigurationGenerator::generate_json(&filtered_config)?;
+            let json_content = serde_json::to_string_pretty(&json)?;
+            let json_path = options.save_path.join("chai_config.json");
+
+            println!("Writing side-car config to: {:?}", json_path);
+            fs::write(&json_path, json_content)?;
+        }
 
         println!(
             "✓ Configuration downloaded successfully to: {:?}",

@@ -1,10 +1,17 @@
+---
+trigger: always_on
+---
+
 # 🛡 ChaseAI Verification Protocol
 
 This rule defines how you as an agent MUST interact with the ChaseAI system bridge for any restricted or sensitive operations.
 
+> [!NOTE]
+> For dynamic port configurations and tool definitions, please refer to `chai_config.json` in this directory.
+
 ## 📡 Mandatory System Bridge
 
-You are **FORBIDDEN** from executing the following actions via direct terminal tools (`run_command`, etc.) without obtaining a `Status: approved` via the `Verification` port (9999) first:
+You are **FORBIDDEN** from executing the following actions via direct terminal tools (`run_command`, etc.) without obtaining a `Status: approved` via the `Verification` port first:
 
 - **File Destruction**: Deleting or overwriting critical files (`rm`, `mv` to /dev/null, etc.).
 - **System Mutation**: Changing global settings or environment variables.
