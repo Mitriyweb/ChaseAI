@@ -4,7 +4,7 @@
 class Chaseai < Formula
   desc "Local control and orchestration system for AI agents"
   homepage "https://github.com/chaseai/chaseai"
-  url "https://github.com/chaseai/chaseai/releases/download/v0.1.0/chase-ai-0.1.0-macos.dmg"
+  url "https://github.com/chaseai/chaseai/releases/download/v0.1.0/chase-0.1.0-macos.dmg"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   version "0.1.0"
 
@@ -28,7 +28,7 @@ class Chaseai < Formula
     end
 
     # Create symlink to binary in bin directory
-    bin.install_symlink "/Applications/ChaseAI.app/Contents/MacOS/ChaseAI" => "chaseai"
+    bin.install_symlink "/Applications/ChaseAI.app/Contents/MacOS/ChaseAI" => "chase"
   end
 
   def mount_dmg(dmg_path)
@@ -39,10 +39,10 @@ class Chaseai < Formula
 
   def post_install
     puts "ChaseAI has been installed!"
-    puts "You can now run: chaseai --help"
+    puts "You can now run: chase --help"
   end
 
   test do
-    system "#{bin}/chaseai", "--version"
+    system "#{bin}/chase", "--version"
   end
 end

@@ -14,7 +14,7 @@ echo "🔐 Code signing macOS application..."
 
 # Configuration
 APP_NAME="ChaseAI"
-BINARY_NAME="chase-ai"
+BINARY_NAME="chase"
 RELEASE_DIR="target/release"
 APP_BUNDLE="${RELEASE_DIR}/${APP_NAME}.app"
 KEYCHAIN_PATH="${HOME}/Library/Keychains/build.keychain-db"

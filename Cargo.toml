@@ -48,7 +48,7 @@ path = "src/test/rs/config_filtering.rs"
 
 
 [[bin]]
-name = "chase-ai"
+name = "chase"
 path = "src/rs/main.rs"
 
 [dependencies]

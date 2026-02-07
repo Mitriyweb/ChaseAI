@@ -19,11 +19,11 @@ The DMG installer provides a simple, graphical installation experience.
 
 1. **Download the DMG**
    - Visit [ChaseAI Releases](https://github.com/chaseai/chaseai/releases)
-   - Download the latest `chase-ai-*.dmg` file for your architecture
+   - Download the latest `chase-*.dmg` file for your architecture
    - Verify the checksum (optional but recommended):
 
    ```bash
-   shasum -a 256 chase-ai-*.dmg
+   shasum -a 256 chase-*.dmg
    # Compare with the .sha256 file from the release
    ```
 
@@ -82,7 +82,7 @@ Homebrew provides easy installation and updates via the command line.
 3. **Verify Installation**
 
    ```bash
-   chaseai --version
+   chase --version
    ```
 
 #### Updating via Homebrew
@@ -207,7 +207,7 @@ After installation, you can run ChaseAI from the terminal:
 
 ```bash
 # Using Homebrew installation
-chaseai [OPTIONS] [COMMAND]
+chase [OPTIONS] [COMMAND]
 
 # Using DMG installation
 /Applications/ChaseAI.app/Contents/MacOS/ChaseAI [OPTIONS] [COMMAND]
@@ -218,7 +218,7 @@ chaseai [OPTIONS] [COMMAND]
 For easier access, create an alias in your shell configuration file (`~/.zshrc`, `~/.bash_profile`, etc.):
 
 ```bash
-alias chaseai="/Applications/ChaseAI.app/Contents/MacOS/ChaseAI"
+alias chase="/Applications/ChaseAI.app/Contents/MacOS/ChaseAI"
 ```
 
 Then reload your shell:
@@ -230,13 +230,13 @@ source ~/.zshrc  # or ~/.bash_profile for bash
 ### Checking Application Version
 
 ```bash
-chaseai --version
+chase --version
 ```
 
 ### Getting Help
 
 ```bash
-chaseai --help
+chase --help
 ```
 
 ## Support

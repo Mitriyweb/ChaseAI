@@ -14,7 +14,7 @@ echo "📦 Creating DMG installer..."
 
 # Configuration
 APP_NAME="ChaseAI"
-BINARY_NAME="chase-ai"
+BINARY_NAME="chase"
 VERSION="${1:-0.1.0}"
 RELEASE_DIR="target/release"
 APP_BUNDLE="${RELEASE_DIR}/${APP_NAME}.app"

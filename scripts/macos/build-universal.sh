@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR/../.."
 echo "🔨 Building universal binary for macOS..."
 
 # Configuration
-BINARY_NAME="chase-ai"
+BINARY_NAME="chase"
 RELEASE_DIR="target/release"
 X86_64_DIR="${RELEASE_DIR}/x86_64"
 AARCH64_DIR="${RELEASE_DIR}/aarch64"

@@ -13,7 +13,7 @@ cd "$SCRIPT_DIR/../.."
 echo "🔐 Notarizing macOS DMG..."
 
 # Configuration
-BINARY_NAME="chase-ai"
+BINARY_NAME="chase"
 VERSION="${1:-0.1.0}"
 RELEASE_DIR="target/release"
 DMG_NAME="${BINARY_NAME}-${VERSION}-macos.dmg"

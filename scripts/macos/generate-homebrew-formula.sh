@@ -9,7 +9,7 @@ set -e
 echo "📝 Generating Homebrew formula..."
 
 # Configuration
-BINARY_NAME="chase-ai"
+BINARY_NAME="chase"
 VERSION="${1:-0.1.0}"
 RELEASE_DIR="target/release"
 DMG_NAME="${BINARY_NAME}-${VERSION}-macos.dmg"
@@ -39,7 +39,7 @@ cat > "${FORMULA_FILE}" << EOF
 class Chaseai < Formula
   desc "Local control and orchestration system for AI agents"
   homepage "https://github.com/chaseai/chaseai"
-  url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chase-ai-#{version}-macos.dmg"
+  url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chase-#{version}-macos.dmg"
   sha256 "${SHA256}"
   version "${VERSION}"
 
@@ -63,7 +63,7 @@ class Chaseai < Formula
     end
 
     # Create symlink to binary in bin directory
-    bin.install_symlink "/Applications/ChaseAI.app/Contents/MacOS/ChaseAI" => "chaseai"
+    bin.install_symlink "/Applications/ChaseAI.app/Contents/MacOS/ChaseAI" => "chase"
   end
 
   def mount_dmg(dmg_path)
@@ -74,11 +74,11 @@ class Chaseai < Formula
 
   def post_install
     puts "ChaseAI has been installed!"
-    puts "You can now run: chaseai --help"
+    puts "You can now run: chase --help"
   end
 
   test do
-    system "#{bin}/chaseai", "--version"
+    system "#{bin}/chase", "--version"
   end
 end
 EOF

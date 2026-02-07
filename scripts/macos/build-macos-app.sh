@@ -10,7 +10,7 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/../.."
 
 # Build the release binary if it doesn't exist
-if [ ! -f "target/release/chase-ai" ]; then
+if [ ! -f "target/release/chase" ]; then
     echo "Building release binary..."
     cargo build --release
 else
@@ -37,7 +37,7 @@ mkdir -p "${RESOURCES_DIR}"
 
 # Copy binary
 echo "Copying binary..."
-cp "target/release/chase-ai" "${MACOS_DIR}/${APP_NAME}"
+cp "target/release/chase" "${MACOS_DIR}/${APP_NAME}"
 
 # Copy Info.plist
 echo "Copying Info.plist..."

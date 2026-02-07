@@ -156,7 +156,7 @@ jobs:
             ## macOS Distribution
 
             ### DMG Installer
-            - Download `chaseai-${{ needs.check-version.outputs.version }}-macos.dmg`
+            - Download `chase-${{ needs.check-version.outputs.version }}-macos.dmg`
             - Mount the DMG and drag ChaseAI to Applications folder
             - Verify checksum: `shasum -a 256 -c checksums.sha256`
 
@@ -168,7 +168,7 @@ jobs:
 
             ### Verify Installation
             ```bash
-            chaseai --version
+            chase --version
             ```
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -210,18 +210,18 @@ jobs:
           class Chaseai < Formula
             desc "Local control and orchestration system for AI agents"
             homepage "https://github.com/chaseai/chaseai"
-            url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chaseai-#{version}-macos.dmg"
+            url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chase-#{version}-macos.dmg"
             sha256 "${{ steps.checksum.outputs.sha256 }}"
             version "${{ needs.check-version.outputs.version }}"
 
             def install
               app_path = "ChaseAI.app"
               prefix.install app_path
-              bin.write_exec_script "#{prefix}/#{app_path}/Contents/MacOS/chase-ai"
+              bin.install_symlink "#{prefix}/#{app_path}/Contents/MacOS/ChaseAI" => "chase"
             end
 
             test do
-              system "#{bin}/chase-ai", "--version"
+              system "#{bin}/chase", "--version"
             end
           end
           EOF

@@ -105,6 +105,8 @@ curl http://localhost:8090/config?format=markdown
 
 ### Example: Request Verification
 
+**Via HTTP API:**
+
 ```bash
 curl -X POST http://localhost:8090/verify \
   -H "Content-Type: application/json" \
@@ -113,6 +115,16 @@ curl -X POST http://localhost:8090/verify \
     "reason": "User requested deployment",
     "context": {"version": "1.2.3"}
   }'
+```
+
+**Via CLI:**
+
+```bash
+chase --verification '{
+  "action": "Deploy to production",
+  "reason": "User requested deployment",
+  "context": {"version": "1.2.3"}
+}'
 ```
 
 ### Documentation
