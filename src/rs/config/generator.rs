@@ -149,14 +149,19 @@ impl ConfigurationGenerator {
         markdown.push_str("## 🛡 Strict Autonomous Protocol\n\n");
         markdown.push_str("Agents are **FORBIDDEN** from executing the following actions via direct terminal tools (`run_command`, etc.) without obtaining a `Status: approved` via the `Verification` port first:\n\n");
         markdown.push_str("- **File Destruction**: Deleting or overwriting critical files (`rm`, `mv` to /dev/null, etc.).\n");
-        markdown.push_str("- **System Mutation**: Changing global settings or environment variables.\n");
-        markdown.push_str("- **Network Changes**: Modifying firewall rules or network interfaces.\n\n");
+        markdown.push_str(
+            "- **System Mutation**: Changing global settings or environment variables.\n",
+        );
+        markdown
+            .push_str("- **Network Changes**: Modifying firewall rules or network interfaces.\n\n");
         markdown.push_str("> [!CAUTION]\n");
         markdown.push_str("> You must **AUTONOMOUSLY** trigger `POST /verify` as soon as you identify the need for a restricted action. **Do not wait for the user to tell you to ask permission**—initiating the system bridge call is your standard procedure for sensitive work.\n\n");
 
         markdown.push_str("---\n\n");
         markdown.push_str("## ⚡️ Session-Based Approval (Automation)\n\n");
-        markdown.push_str("To avoid manual confirmation for every action, use the **Session Protocol**:\n\n");
+        markdown.push_str(
+            "To avoid manual confirmation for every action, use the **Session Protocol**:\n\n",
+        );
         markdown.push_str("1. **Initial Request**: Send `POST /verify` as usual.\n");
         markdown.push_str("2. **User Interaction**: If the user selects **\"Approve Session\"**, the response will contain `status: \"approved_session\"` and a `verification_id`.\n");
         markdown.push_str("3. **Automation**: Store this `verification_id`. In all subsequent `POST /verify` requests, include it as `\"session_id\": \"YOUR_VERIFICATION_ID\"` in the request body.\n");
@@ -184,8 +189,12 @@ impl ConfigurationGenerator {
         for binding in &network_config.port_bindings {
             if binding.role == PortRole::Verification && binding.enabled {
                 markdown.push_str("- **File Destruction**: Deleting or overwriting critical files (`rm`, `mv` to /dev/null, etc.).\n");
-                markdown.push_str("- **System Mutation**: Changing global settings or environment variables.\n");
-                markdown.push_str("- **Network Changes**: Modifying firewall rules or network interfaces.\n\n");
+                markdown.push_str(
+                    "- **System Mutation**: Changing global settings or environment variables.\n",
+                );
+                markdown.push_str(
+                    "- **Network Changes**: Modifying firewall rules or network interfaces.\n\n",
+                );
 
                 markdown.push_str("## 🛡 Strict Autonomous Procedure\n\n");
                 markdown.push_str(&format!("1. **Proactive Hand-off**: When you plan a restricted operation, call `POST http://{}:{}/verify` immediately.\n", binding.interface.ip_address, binding.port));
@@ -194,9 +203,18 @@ impl ConfigurationGenerator {
                 markdown.push_str("4. **Session Automation**: If the status is `approved_session`, store the `verification_id` and use it as `session_id` in subsequent requests to automate the flow for 1 hour.\n\n");
 
                 markdown.push_str("## 🛠 Endpoint Reference\n\n");
-                markdown.push_str(&format!("- `GET http://{}:{}/health`: Check if the bridge is alive.\n", binding.interface.ip_address, binding.port));
-                markdown.push_str(&format!("- `POST http://{}:{}/verify`: Request approval for an action.\n", binding.interface.ip_address, binding.port));
-                markdown.push_str(&format!("- `GET http://{}:{}/context`: Retrieve capability constraints.\n\n", binding.interface.ip_address, binding.port));
+                markdown.push_str(&format!(
+                    "- `GET http://{}:{}/health`: Check if the bridge is alive.\n",
+                    binding.interface.ip_address, binding.port
+                ));
+                markdown.push_str(&format!(
+                    "- `POST http://{}:{}/verify`: Request approval for an action.\n",
+                    binding.interface.ip_address, binding.port
+                ));
+                markdown.push_str(&format!(
+                    "- `GET http://{}:{}/context`: Retrieve capability constraints.\n\n",
+                    binding.interface.ip_address, binding.port
+                ));
                 break;
             }
         }

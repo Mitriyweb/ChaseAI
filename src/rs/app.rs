@@ -25,24 +25,23 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         let config = config::network_config::NetworkConfig::load().unwrap_or_default();
-        let runtime = Runtime::new().expect("Failed to create Tokio runtime");
+        let runtime =
+            Runtime::new().map_err(|e| anyhow::anyhow!("Failed to create Tokio runtime: {}", e))?;
 
         let context_manager = Arc::new(Mutex::new(
-            instruction::manager::ContextManager::new().unwrap_or_else(|e| {
+            instruction::manager::ContextManager::new().map_err(|e| {
                 eprintln!("Failed to initialize ContextManager: {}", e);
-                // Creating a dummy context manager might be safer than panicking if we want to be robust
-                // But for now, since it depends on storage being accessible, panic is "safe" relative to undefined behavior
-                panic!("Critical startup error: {}", e);
-            }),
+                anyhow::anyhow!("Critical startup error: {}", e)
+            })?,
         ));
 
         let server_pool = Arc::new(TokioMutex::new(server::pool::ServerPool::new(
             context_manager.clone(),
         )));
 
-        Self {
+        Ok(Self {
             name: "ChaseAI".to_string(),
             version: version().to_string(),
             config,
@@ -50,13 +49,7 @@ impl App {
             runtime,
             context_manager,
             server_pool,
-        }
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
+        })
     }
 }
 
@@ -281,13 +274,13 @@ impl App {
                     .find(|i| i.interface_type == self.config.default_interface)
                     .unwrap_or_else(|| crate::network::interface_detector::NetworkInterface {
                         name: "lo0".to_string(),
-                        ip_address: "127.0.0.1".parse().unwrap(),
+                        ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                         interface_type: crate::network::interface_detector::InterfaceType::Loopback,
                     })
             } else {
                 crate::network::interface_detector::NetworkInterface {
                     name: "lo0".to_string(),
-                    ip_address: "127.0.0.1".parse().unwrap(),
+                    ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                     interface_type: crate::network::interface_detector::InterfaceType::Loopback,
                 }
             };
@@ -364,8 +357,9 @@ impl App {
                 (content, "md")
             }
             crate::ui::dialogs::ConfigFormat::AgentRule => {
-                let content =
-                    config::generator::ConfigurationGenerator::generate_agent_rule(&filtered_config)?;
+                let content = config::generator::ConfigurationGenerator::generate_agent_rule(
+                    &filtered_config,
+                )?;
                 (content, "agent_rule")
             }
         };
@@ -376,7 +370,10 @@ impl App {
         }
 
         // Generate filename
-        let has_verification = filtered_config.port_bindings.iter().any(|b| b.role == crate::network::port_config::PortRole::Verification);
+        let has_verification = filtered_config
+            .port_bindings
+            .iter()
+            .any(|b| b.role == crate::network::port_config::PortRole::Verification);
 
         let filename = if (extension == "agent_rule" || extension == "md") && has_verification {
             "verification-protocol.md".to_string()

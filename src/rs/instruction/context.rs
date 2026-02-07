@@ -52,7 +52,8 @@ impl InstructionContext {
             return Err(anyhow::anyhow!("Allowed actions list cannot be empty"));
         }
 
-        let action_regex = Regex::new(r"^[a-z][a-z0-9-]*$").unwrap();
+        let action_regex = Regex::new(r"^[a-z][a-z0-9-]*$")
+            .map_err(|e| anyhow::anyhow!("Invalid action regex: {}", e))?;
         for action in &self.allowed_actions {
             if !action_regex.is_match(action) {
                 return Err(anyhow::anyhow!(

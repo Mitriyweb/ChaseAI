@@ -17,12 +17,20 @@ impl ContextManager {
     pub fn new() -> Result<Self> {
         let storage = ContextStorage::new()?;
         let contexts = storage.load_all()?;
-        Ok(Self { contexts, storage, sessions: HashMap::new() })
+        Ok(Self {
+            contexts,
+            storage,
+            sessions: HashMap::new(),
+        })
     }
 
     pub fn new_with_storage(storage: ContextStorage) -> Result<Self> {
         let contexts = storage.load_all()?;
-        Ok(Self { contexts, storage, sessions: HashMap::new() })
+        Ok(Self {
+            contexts,
+            storage,
+            sessions: HashMap::new(),
+        })
     }
 
     pub fn set_context(

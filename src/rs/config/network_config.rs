@@ -16,7 +16,7 @@ impl NetworkConfig {
         // Create default port bindings for loopback interface
         let loopback_interface = crate::network::interface_detector::NetworkInterface {
             name: "lo0".to_string(),
-            ip_address: "127.0.0.1".parse().unwrap(),
+            ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
             interface_type: InterfaceType::Loopback,
         };
 

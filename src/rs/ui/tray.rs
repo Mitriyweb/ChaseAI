@@ -37,7 +37,9 @@ impl TrayManager {
 
         // Get the executable path and construct paths relative to it
         let exe_path = std::env::current_exe()?;
-        let exe_dir = exe_path.parent().unwrap();
+        let exe_dir = exe_path
+            .parent()
+            .ok_or_else(|| anyhow::anyhow!("Could not get executable parent directory"))?;
 
         // Try multiple possible icon paths (for both dev and app bundle)
         // For menu bar, we want a larger icon that scales well (64x64 or higher)

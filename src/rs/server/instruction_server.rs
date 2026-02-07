@@ -120,23 +120,25 @@ pub struct VerificationResponse {
 
 async fn verify_action(
     State(manager): State<Arc<Mutex<ContextManager>>>,
-    Json(payload): Json<VerificationRequest>
-) -> Json<VerificationResponse> {
+    Json(payload): Json<VerificationRequest>,
+) -> Result<Json<VerificationResponse>, StatusCode> {
     println!("🚨 Verification requested for action: {}", payload.action);
 
     // 1. Check if we already have an active authorized session for this agent
     if let Some(sid) = &payload.session_id {
-        let mgr = manager.lock().unwrap();
+        let mgr = manager
+            .lock()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         if let Some((expires, _allowed)) = mgr.sessions.get(sid) {
             if *expires > chrono::Utc::now() {
                 // Check if the current action is within the scope of allowed actions in this session
                 // For simplicity, if the session exists, we assume it covers the agent's work
                 println!("✅ Action automatically approved via session: {}", sid);
-                return Json(VerificationResponse {
+                return Ok(Json(VerificationResponse {
                     status: "approved".to_string(),
                     verification_id: sid.clone(),
                     message: Some("Automatically approved via active session".to_string()),
-                });
+                }));
             }
         }
     }
@@ -147,9 +149,17 @@ async fn verify_action(
         .map(|c| c.to_string())
         .unwrap_or_else(|| "{}".to_string());
 
-    let buttons = payload.buttons.unwrap_or_else(|| vec!["Reject".to_string(), "Approve Once".to_string(), "Approve Session".to_string()]);
+    let buttons = payload.buttons.unwrap_or_else(|| {
+        vec![
+            "Reject".to_string(),
+            "Approve Once".to_string(),
+            "Approve Session".to_string(),
+        ]
+    });
 
-    let task_id = payload.context.as_ref()
+    let task_id = payload
+        .context
+        .as_ref()
         .and_then(|c| c.get("task_id"))
         .and_then(|v| v.as_str())
         .unwrap_or("CHASE-TASK");
@@ -173,21 +183,24 @@ async fn verify_action(
 
     // 2. If user chose "Approve Session", register it in the manager
     if status.contains("session") {
-        let mut mgr = manager.lock().unwrap();
+        let mut mgr = manager
+            .lock()
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         // Session valid for 1 hour
         let expires = chrono::Utc::now() + chrono::Duration::hours(1);
-        mgr.sessions.insert(verification_id.clone(), (expires, vec![]));
+        mgr.sessions
+            .insert(verification_id.clone(), (expires, vec![]));
         println!("🎟 Session created: {}", verification_id);
         status = "approved_session".to_string();
     } else if status.contains("approve") {
         status = "approved".to_string();
     }
 
-    Json(VerificationResponse {
+    Ok(Json(VerificationResponse {
         status,
         verification_id,
         message,
-    })
+    }))
 }
 
 async fn get_context(

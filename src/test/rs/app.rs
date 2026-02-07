@@ -15,32 +15,32 @@ fn test_version_return() {
 
 #[test]
 fn test_app_new() {
-    let app = App::new();
+    let app = App::new().unwrap();
     assert_eq!(app.name, "ChaseAI");
     assert!(!app.version.is_empty());
 }
 
 #[test]
 fn test_app_initialization() {
-    let app = App::new();
+    let app = App::new().unwrap();
     assert_eq!(app.name, "ChaseAI");
 }
 
 #[test]
 fn test_process_menu_event_quit() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     assert!(app.process_menu_event("quit"));
 }
 
 #[test]
 fn test_process_menu_event_unknown() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     assert!(!app.process_menu_event("unknown_event"));
 }
 
 #[test]
 fn test_process_menu_event_toggle_all() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     app.process_menu_event("cmd:enable_all");
     assert!(app.config.port_bindings.iter().all(|b| b.enabled));
 
@@ -50,7 +50,7 @@ fn test_process_menu_event_toggle_all() {
 
 #[test]
 fn test_download_config_to() {
-    let app = App::new();
+    let app = App::new().unwrap();
     let temp_dir = tempfile::tempdir().unwrap();
     assert!(app.download_config_to(temp_dir.path()).is_ok());
 
@@ -60,13 +60,13 @@ fn test_download_config_to() {
 
 #[test]
 fn test_reload_config() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     app.reload_config();
 }
 
 #[test]
 fn test_process_menu_event_interface() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     app.process_menu_event("interface:lo0");
     assert_eq!(
         app.config.default_interface,
@@ -76,7 +76,7 @@ fn test_process_menu_event_interface() {
 
 #[test]
 fn test_process_menu_event_port_toggle() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     if app.config.port_bindings.is_empty() {
         app.config
             .port_bindings
@@ -101,7 +101,7 @@ fn test_process_menu_event_port_toggle() {
 
 #[test]
 fn test_process_menu_event_remove_port() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     if app.config.port_bindings.is_empty() {
         app.config
             .port_bindings
@@ -125,7 +125,7 @@ fn test_process_menu_event_remove_port() {
 
 #[test]
 fn test_process_menu_event_role_change() {
-    let mut app = App::new();
+    let mut app = App::new().unwrap();
     if app.config.port_bindings.is_empty() {
         app.config
             .port_bindings
