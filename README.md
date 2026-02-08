@@ -287,12 +287,32 @@ cargo clippy --all-targets
 
 # Check for unused dependencies
 cargo +nightly udeps --all-targets
-
-# Lint markdown
-bun run lint:md
 ```
 
-Pre-commit hooks are configured to run automatically on commit. See `.pre-commit-config.yaml` for details.
+### Pre-commit Hooks
+
+All commits must pass pre-commit hooks. **Do not use `git commit --no-verify`**.
+
+Pre-commit hooks automatically run:
+
+- Rust formatting (`cargo fmt`)
+- Markdown linting (`markdownlint-cli2`)
+- Rust linting (`clippy`)
+- Unused dependencies check (`cargo udeps`)
+- Test organization validation
+- Build verification
+
+```bash
+# Pre-commit hooks run automatically before each commit
+# If a hook fails, fix the issues and try committing again
+
+# To manually run all pre-commit hooks:
+pre-commit run --all-files
+```
+
+**Important:** Using `--no-verify` bypasses quality checks and is **not allowed** in this project. All commits must pass pre-commit validation.
+
+**Setup:** Git hooks are configured in `.githooks/` and automatically used via `core.hooksPath`.
 
 ## Architecture
 
