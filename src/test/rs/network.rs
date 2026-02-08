@@ -29,25 +29,34 @@ fn test_is_private_ip() {
     use std::net::IpAddr;
 
     // V4 Private
-    assert!(InterfaceDetector::is_private_ip(
-        "192.168.1.1".parse::<IpAddr>().unwrap()
-    ));
-    assert!(InterfaceDetector::is_private_ip(
-        "10.0.0.1".parse::<IpAddr>().unwrap()
-    ));
-    assert!(InterfaceDetector::is_private_ip(
-        "172.16.0.1".parse::<IpAddr>().unwrap()
-    ));
+    let private_v4 = ["192.168.1.1", "10.0.0.1", "172.16.0.1"];
+    for ip in private_v4 {
+        assert!(
+            InterfaceDetector::is_private_ip(ip.parse::<IpAddr>().unwrap()),
+            "IP {} should be private",
+            ip
+        );
+    }
 
     // V4 Public
-    assert!(!InterfaceDetector::is_private_ip(
-        "8.8.8.8".parse::<IpAddr>().unwrap()
-    ));
+    let public_v4 = ["8.8.8.8", "1.1.1.1", "142.250.190.46"];
+    for ip in public_v4 {
+        assert!(
+            !InterfaceDetector::is_private_ip(ip.parse::<IpAddr>().unwrap()),
+            "IP {} should be public",
+            ip
+        );
+    }
 
-    // V6 (currently always returns true in implementation)
-    assert!(InterfaceDetector::is_private_ip(
-        "::1".parse::<IpAddr>().unwrap()
-    ));
+    // V6 (currently always returns true in implementation, but let's test common ones)
+    let v6_ips = ["::1", "fe80::1", "2001:db8::1"];
+    for ip in v6_ips {
+        assert!(
+            InterfaceDetector::is_private_ip(ip.parse::<IpAddr>().unwrap()),
+            "IP {} should be private (V6 current behavior)",
+            ip
+        );
+    }
 }
 
 #[test]

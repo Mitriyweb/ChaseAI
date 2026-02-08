@@ -111,7 +111,7 @@ pub struct VerificationRequest {
     pub session_id: Option<String>,
 }
 
-#[derive(Debug, serde::Serialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct VerificationResponse {
     pub status: String,
     pub verification_id: String,
