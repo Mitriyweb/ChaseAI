@@ -1,15 +1,14 @@
-# DISABLED: This workflow is currently disabled pending certificate setup
-# name: macOS Release
-#
-# on:
-#   push:
-#     tags:
-#       - 'v*.*.*'
+# macOS Release Workflow
+# Automatically builds and releases ChaseAI when a version tag is pushed
+# Tags should follow the format: v1.0.0
 
-name: macOS Release (DISABLED)
+name: macOS Release
 
 on:
-  workflow_dispatch:  # Only manual trigger, not automatic
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:  # Also allow manual trigger
 
 jobs:
   check-version:
@@ -20,6 +19,7 @@ jobs:
       file-version: ${{ steps.check-file.outputs.version }}
       version-match: ${{ steps.compare-versions.outputs.match }}
       should-release: ${{ steps.check-release.outputs.should-release }}
+      release-exists: ${{ steps.check-existing-release.outputs.exists }}
     steps:
       - uses: actions/checkout@v4
 
@@ -51,11 +51,30 @@ jobs:
             exit 1
           fi
 
+      - name: Check if release already exists
+        id: check-existing-release
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          RELEASE_URL="https://api.github.com/repos/${{ github.repository }}/releases/tags/v$VERSION"
+          
+          if curl -s -f "$RELEASE_URL" > /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            echo "⊘ Release v$VERSION already exists"
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "✓ Release v$VERSION does not exist yet"
+          fi
+
       - name: Check if should release
         id: check-release
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
-          if [ "$VERSION" = "0.1.0" ]; then
+          RELEASE_EXISTS=${{ steps.check-existing-release.outputs.exists }}
+          
+          if [ "$RELEASE_EXISTS" = "true" ]; then
+            echo "should-release=false" >> $GITHUB_OUTPUT
+            echo "⊘ Skipping release - v$VERSION already released"
+          elif [ "$VERSION" = "0.1.0" ]; then
             echo "should-release=false" >> $GITHUB_OUTPUT
             echo "⊘ Skipping release for version 0.1.0 (development version)"
           else
