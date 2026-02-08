@@ -62,7 +62,8 @@ fn test_reload_config() {
 #[test]
 fn test_process_menu_event_interface() {
     let mut app = App::new_with_config(app::config::network_config::NetworkConfig::new()).unwrap();
-    let loopback_name = app::network::interface_detector::InterfaceDetector::default_loopback_name();
+    let loopback_name =
+        app::network::interface_detector::InterfaceDetector::default_loopback_name();
     let event = format!("interface:{}", loopback_name);
     app.process_menu_event(&event);
     assert_eq!(
@@ -80,8 +81,9 @@ fn test_process_menu_event_port_toggle() {
             .push(app::network::port_config::PortBinding {
                 port: 8888,
                 interface: app::network::interface_detector::NetworkInterface {
-                    name: app::network::interface_detector::InterfaceDetector::default_loopback_name()
-                        .to_string(),
+                    name:
+                        app::network::interface_detector::InterfaceDetector::default_loopback_name()
+                            .to_string(),
                     ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                     interface_type: app::network::interface_detector::InterfaceType::Loopback,
                 },
@@ -106,8 +108,9 @@ fn test_process_menu_event_remove_port() {
             .push(app::network::port_config::PortBinding {
                 port: 8888,
                 interface: app::network::interface_detector::NetworkInterface {
-                    name: app::network::interface_detector::InterfaceDetector::default_loopback_name()
-                        .to_string(),
+                    name:
+                        app::network::interface_detector::InterfaceDetector::default_loopback_name()
+                            .to_string(),
                     ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                     interface_type: app::network::interface_detector::InterfaceType::Loopback,
                 },
@@ -131,8 +134,9 @@ fn test_process_menu_event_role_change() {
             .push(app::network::port_config::PortBinding {
                 port: 8888,
                 interface: app::network::interface_detector::NetworkInterface {
-                    name: app::network::interface_detector::InterfaceDetector::default_loopback_name()
-                        .to_string(),
+                    name:
+                        app::network::interface_detector::InterfaceDetector::default_loopback_name()
+                            .to_string(),
                     ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                     interface_type: app::network::interface_detector::InterfaceType::Loopback,
                 },

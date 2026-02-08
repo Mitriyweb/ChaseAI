@@ -26,7 +26,7 @@ pub fn run() -> anyhow::Result<()> {
     }
 
     // Create and initialize app
-    let mut app_instance = App::new();
+    let mut app_instance = App::new()?;
 
     // Run app initialization (this sets up tray)
     app_instance.run()?;
