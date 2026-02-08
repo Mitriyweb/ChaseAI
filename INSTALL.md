@@ -9,6 +9,7 @@ curl -sL https://github.com/Mitriyweb/ChaseAI/releases/latest/download/install.s
 ```
 
 This will:
+
 1. Download the latest ChaseAI DMG
 2. Verify the checksum
 3. Mount the DMG
@@ -47,6 +48,7 @@ open /Applications/ChaseAI.app
 ### "Cannot open ChaseAI.app" error
 
 If you get a security warning, allow it in System Preferences:
+
 1. Go to System Preferences → Security & Privacy
 2. Click "Open Anyway" next to ChaseAI
 3. Or run: `xattr -d com.apple.quarantine /Applications/ChaseAI.app`
@@ -54,6 +56,7 @@ If you get a security warning, allow it in System Preferences:
 ### Installation script fails
 
 Make sure you have:
+
 - macOS 10.13 or later
 - Internet connection
 - Write access to `/Applications`
@@ -85,5 +88,6 @@ brew uninstall chaseai
 ## Support
 
 For issues or questions, visit:
+
 - [GitHub Issues](https://github.com/Mitriyweb/ChaseAI/issues)
 - [Documentation](https://github.com/Mitriyweb/ChaseAI/docs)
