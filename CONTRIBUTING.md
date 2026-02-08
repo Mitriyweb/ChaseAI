@@ -77,7 +77,7 @@ cargo test test_name
 
 Use conventional commit format:
 
-```
+```text
 type: description
 
 Optional body with more details
@@ -86,7 +86,8 @@ Optional body with more details
 Types: `feat`, `fix`, `docs`, `test`, `refactor`, `chore`
 
 Example:
-```
+
+```text
 feat: add download config functionality
 
 - Implement JSON/YAML/Markdown export
