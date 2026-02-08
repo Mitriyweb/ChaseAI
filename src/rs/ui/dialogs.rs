@@ -36,6 +36,7 @@ impl ConfigFormat {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct ConfigDownloadOptions {
     pub selected_ports: Vec<u16>,
     pub format: ConfigFormat,

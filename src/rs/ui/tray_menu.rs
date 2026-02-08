@@ -188,14 +188,16 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
             MenuItem::with_id("cmd:download_config", "Download Config", true, None);
         menu.append(&download_config)?;
         println!("Download Config button added successfully");
-
-        // 4. Global Commands
-        let enable_all = MenuItem::with_id("cmd:enable_all", "Enable All Services", true, None);
-        let disable_all = MenuItem::with_id("cmd:disable_all", "Disable All Services", true, None);
-
-        menu.append(&enable_all)?;
-        menu.append(&disable_all)?;
     }
+
+    menu.append(&PredefinedMenuItem::separator())?;
+
+    // Global Commands (Available in all builds)
+    let enable_all = MenuItem::with_id("cmd:enable_all", "Enable All Services", true, None);
+    let disable_all = MenuItem::with_id("cmd:disable_all", "Disable All Services", true, None);
+
+    menu.append(&enable_all)?;
+    menu.append(&disable_all)?;
 
     menu.append(&PredefinedMenuItem::separator())?;
 

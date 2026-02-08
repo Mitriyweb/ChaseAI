@@ -322,16 +322,55 @@ impl App {
     }
 
     fn download_config(&self) {
-        // Show preview dialog to get user preferences
-        if let Some(options) = crate::ui::dialogs::show_download_config_dialog(&self.config) {
-            if let Err(e) = self.download_config_with_options(&options) {
-                eprintln!("Failed to download config: {}", e);
-            } else {
-                println!("✓ Configuration downloaded successfully");
+        println!("=== Download Config Started ===");
+
+        // Check if there are any ports configured
+        if self.config.port_bindings.is_empty() {
+            eprintln!("No ports configured. Cannot download config.");
+            #[cfg(target_os = "macos")]
+            {
+                let _ = std::process::Command::new("osascript")
+                    .arg("-e")
+                    .arg("display dialog \"No ports configured. Please add at least one port first.\" buttons {\"OK\"} default button \"OK\"")
+                    .output();
             }
-        } else {
-            println!("Download config cancelled by user");
+            return;
         }
+
+        // Show preview dialog to get user preferences
+        match crate::ui::dialogs::show_download_config_dialog(&self.config) {
+            Some(options) => {
+                println!("Dialog returned options: {:?}", options);
+                if let Err(e) = self.download_config_with_options(&options) {
+                    eprintln!("Failed to download config: {}", e);
+                    #[cfg(target_os = "macos")]
+                    {
+                        let error_msg = format!("Failed to download config: {}", e);
+                        let script = format!(
+                            "display dialog \"{}\" buttons {{\"OK\"}} default button \"OK\"",
+                            error_msg.replace("\"", "\\\"")
+                        );
+                        let _ = std::process::Command::new("osascript")
+                            .arg("-e")
+                            .arg(&script)
+                            .output();
+                    }
+                } else {
+                    println!("✓ Configuration downloaded successfully");
+                    #[cfg(target_os = "macos")]
+                    {
+                        let _ = std::process::Command::new("osascript")
+                            .arg("-e")
+                            .arg("display dialog \"Configuration downloaded successfully!\" buttons {\"OK\"} default button \"OK\"")
+                            .output();
+                    }
+                }
+            }
+            None => {
+                println!("Download config cancelled by user or dialog failed");
+            }
+        }
+        println!("=== Download Config Completed ===");
     }
 
     fn download_config_with_options(
