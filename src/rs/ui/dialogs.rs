@@ -451,3 +451,53 @@ pub fn show_verification_dialog(
         Some("Verification not supported on this platform".to_string()),
     )
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_format_extension() {
+        assert_eq!(ConfigFormat::Json.extension(), "json");
+        assert_eq!(ConfigFormat::Yaml.extension(), "yaml");
+        assert_eq!(ConfigFormat::Markdown.extension(), "md");
+        assert_eq!(ConfigFormat::AgentRule.extension(), "md");
+    }
+
+    #[test]
+    fn test_config_format_name() {
+        assert_eq!(ConfigFormat::Json.name(), "JSON");
+        assert_eq!(ConfigFormat::Yaml.name(), "YAML");
+        assert_eq!(ConfigFormat::Markdown.name(), "Markdown");
+        assert_eq!(ConfigFormat::AgentRule.name(), "Agent Rule");
+    }
+
+    #[test]
+    fn test_config_download_options_debug() {
+        let options = ConfigDownloadOptions {
+            selected_ports: vec![8888, 9999],
+            format: ConfigFormat::Json,
+            save_path: std::path::PathBuf::from("/tmp"),
+        };
+
+        // Test that Debug trait is implemented
+        let debug_str = format!("{:?}", options);
+        assert!(debug_str.contains("8888"));
+        assert!(debug_str.contains("9999"));
+        assert!(debug_str.contains("Json"));
+    }
+
+    #[test]
+    fn test_config_download_options_clone() {
+        let options = ConfigDownloadOptions {
+            selected_ports: vec![8888],
+            format: ConfigFormat::Yaml,
+            save_path: std::path::PathBuf::from("/tmp"),
+        };
+
+        let cloned = options.clone();
+        assert_eq!(cloned.selected_ports, options.selected_ports);
+        assert_eq!(cloned.format, options.format);
+        assert_eq!(cloned.save_path, options.save_path);
+    }
+}
