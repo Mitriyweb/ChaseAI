@@ -1,67 +1,97 @@
 #!/bin/bash
 
-# ChaseAI Installer
-# Installs the latest version of ChaseAI from GitHub Releases
+# ChaseAI Installation Script
+# Downloads and installs ChaseAI on macOS
 
 set -e
 
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+# Configuration
 REPO="Mitriyweb/ChaseAI"
-APP_NAME="ChaseAI.app"
 INSTALL_DIR="/Applications"
+APP_NAME="ChaseAI.app"
 
-echo "🔍 Checking system compatibility..."
+echo -e "${GREEN}🚀 ChaseAI Installation Script${NC}"
+echo ""
+
+# Check if running on macOS
 if [[ "$OSTYPE" != "darwin"* ]]; then
-    echo "❌ Error: ChaseAI is currently only available for macOS."
+    echo -e "${RED}❌ Error: This script only works on macOS${NC}"
     exit 1
 fi
 
-echo "⬇️  Fetching latest release info..."
-LATEST_RELEASE=$(curl -s "https://api.github.com/repos/$REPO/releases/latest")
-TAG_NAME=$(echo "$LATEST_RELEASE" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
+# Get the latest release version
+echo "📥 Fetching latest release..."
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
 
-if [ -z "$TAG_NAME" ]; then
-    echo "❌ Error: Could not find latest release tag."
+if [ -z "$LATEST_RELEASE" ]; then
+    echo -e "${RED}❌ Error: Could not fetch latest release${NC}"
     exit 1
 fi
 
-echo "🏷️  Latest version: $TAG_NAME"
+echo "   Latest version: $LATEST_RELEASE"
 
-# Find the DMG asset
-DMG_URL=$(echo "$LATEST_RELEASE" | grep '"browser_download_url":' | grep '.dmg"' | sed -E 's/.*"([^"]+)".*/\1/')
+# Download DMG
+DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chaseai-$LATEST_RELEASE-macos.dmg"
+DMG_FILE="/tmp/chaseai-$LATEST_RELEASE.dmg"
 
-if [ -z "$DMG_URL" ]; then
-    echo "❌ Error: Could not find DMG asset in release."
+echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
+if ! curl -L -o "$DMG_FILE" "$DMG_URL"; then
+    echo -e "${RED}❌ Error: Failed to download DMG${NC}"
     exit 1
 fi
 
-# Create temp directory
-TEMP_DIR=$(mktemp -d)
-DMG_FILE="$TEMP_DIR/ChaseAI.dmg"
-
-echo "📥 Downloading ChaseAI..."
-curl -L -o "$DMG_FILE" "$DMG_URL" --progress-bar
-
-echo "📦 Mounting DMG..."
-MOUNT_POINT=$(hdiutil attach "$DMG_FILE" -nobrowse | grep "/Volumes" | awk '{print $3}')
-
-if [ -z "$MOUNT_POINT" ]; then
-    # Sometimes awk fails if volume name has spaces, try fallback
-    MOUNT_POINT="/Volumes/ChaseAI"
+# Verify checksum if available
+CHECKSUMS_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/checksums.sha256"
+if curl -s -f "$CHECKSUMS_URL" > /tmp/checksums.sha256; then
+    echo "🔐 Verifying checksum..."
+    cd /tmp
+    if ! shasum -a 256 -c checksums.sha256 | grep -q "chaseai-$LATEST_RELEASE-macos.dmg"; then
+        echo -e "${RED}❌ Error: Checksum verification failed${NC}"
+        rm -f "$DMG_FILE"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Checksum verified${NC}"
 fi
 
-echo "🚀 Installing to $INSTALL_DIR..."
+# Mount DMG
+echo "📂 Mounting DMG..."
+MOUNT_POINT=$(mktemp -d)
+hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
 
-if [ -d "$INSTALL_DIR/ChaseAI.app" ]; then
+# Copy app to Applications
+echo "📋 Installing ChaseAI to $INSTALL_DIR..."
+if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     echo "   Removing existing installation..."
-    rm -rf "$INSTALL_DIR/ChaseAI.app"
+    rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
 
 cp -r "$MOUNT_POINT/$APP_NAME" "$INSTALL_DIR/"
 
-echo "🧹 Cleaning up..."
-hdiutil detach "$MOUNT_POINT" -quiet
-rm -rf "$TEMP_DIR"
+# Unmount DMG
+echo "🔓 Unmounting DMG..."
+hdiutil detach "$MOUNT_POINT"
 
-echo ""
-echo "✅ ChaseAI installed successfully!"
-echo "   Run it from Applications or type: open -a ChaseAI"
+# Clean up
+rm -f "$DMG_FILE"
+rm -rf "$MOUNT_POINT"
+
+# Verify installation
+if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
+    echo -e "${GREEN}✅ Installation successful!${NC}"
+    echo ""
+    echo "📍 ChaseAI installed to: $INSTALL_DIR/$APP_NAME"
+    echo ""
+    echo "🚀 To launch ChaseAI:"
+    echo "   open $INSTALL_DIR/$APP_NAME"
+    echo ""
+    echo "💡 Or use Spotlight search (Cmd+Space) and type 'ChaseAI'"
+else
+    echo -e "${RED}❌ Error: Installation failed${NC}"
+    exit 1
+fi
