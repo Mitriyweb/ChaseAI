@@ -113,7 +113,7 @@ jobs:
         run: bash scripts/macos/build-universal.sh
 
       - name: Create app bundle
-        run: bash build-macos-app.sh
+        run: bash scripts/macos/build-macos-app.sh
 
       - name: Sign application
         if: env.MACOS_CERTIFICATE != ''
@@ -157,6 +157,8 @@ jobs:
     needs: [check-version, build-macos-release]
     if: needs.check-version.outputs.should-release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -205,6 +207,8 @@ jobs:
     needs: [check-version, create-github-release]
     if: needs.check-version.outputs.should-release == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
 

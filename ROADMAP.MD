@@ -70,3 +70,22 @@ Each port is associated with an **Instruction Context**.
   "verification_required": true
 }
 ```
+
+
+---
+
+## Development Features (Dev Build)
+
+These features are available in the dev build (`cargo build --features dev`) for testing and development purposes:
+
+### Verification Mode Selection
+
+- Switch between Port-based verification (HTTP) and CLI-based verification
+- Useful for testing different verification workflows
+
+### Additional Debugging Tools
+
+- Enhanced logging and diagnostics
+- Development-specific UI elements
+
+**Note:** Dev features are not recommended for production use. Use the beta or production builds for stable deployments.

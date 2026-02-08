@@ -5,11 +5,20 @@ ChaseAI is a local tray-based orchestrator that turns an AI agent from a
 
 ## Features
 
+### Production Ready ✅
+
 - **System Tray Application** - Native tray/menu bar interface for all platforms
-- **Port Management** - Configure and manage multiple instruction ports
-- **Network Interface Selection** - Switch between Loopback, LAN, and Public interfaces
+- **Verification System** - Human-in-the-loop approval for sensitive operations
 - **Real-time Configuration** - Changes are applied immediately
 - **Service Control** - Enable/disable services on demand
+
+### Beta Features 🧪
+
+- **Port Management** - Configure and manage multiple instruction ports
+- **Instruction Server** - Retrieve config via HTTP API (`GET /config`)
+- **Download Config** - Export configuration as JSON, YAML, Markdown, or Agent Rule
+- **Add/Remove Ports** - Dynamically manage ports from the UI
+- **Network Interface Selection** - Switch between Loopback, LAN, and Public interfaces
 
 ## Installation
 
@@ -26,34 +35,35 @@ Or download the latest `.dmg` from [GitHub Releases](https://github.com/Mitriywe
 ### Building and Running
 
 ```bash
-# Build the application
-bun run build
+# Production build (stable features only)
+cargo build
+
+# Beta build (includes Port Management, Instruction Server, Download Config, etc.)
+cargo build --features beta
 
 # Run the application
-bun start
+./target/debug/chase-ai
 ```
 
 The ChaseAI icon will appear in your system tray (macOS menu bar, Windows system tray, Linux tray).
 
 ### Using the Application
 
-**Port Management:**
+**Production Build:**
 
-- View all configured ports with their status (● enabled, ○ disabled) and role
+- View verification port status (● enabled, ○ disabled)
+- Enable/Disable verification port
+- "Enable All Services" - turn on all services
+- "Disable All Services" - turn off all services
+
+**Beta Build:**
+
+- View all configured ports with their status and role
 - Click on a port to enable/disable it or change its role
-- Add new ports via "Manage Ports" → "Add New Port..."
-- Remove ports via "Manage Ports" → "Remove Port X"
-
-**Network Configuration:**
-
-- Select network interface: Loopback (127.0.0.1), LAN, or Public
-- All ports automatically bind to the selected interface
-
-**Service Control:**
-
-- Enable/Disable individual ports
-- "Enable All Services" - turn on all configured ports
-- "Disable All Services" - turn off all configured ports
+- Add new ports via "Add New Port..."
+- Remove ports via port menu
+- Select network interface: Loopback, LAN, or Public
+- Download configuration in JSON, YAML, Markdown, or Agent Rule format
 
 ## Configuration
 
@@ -71,6 +81,34 @@ role = "Instruction"
 port = 9999
 enabled = false
 role = "Verification"
+```
+
+## Beta Features
+
+To enable beta features, build with the `beta` feature flag:
+
+```bash
+# Build with beta features
+cargo build --features beta
+
+# Or with bun
+bun run build --features beta
+```
+
+### Available in Beta
+
+- **Download Config** - Export configuration in multiple formats
+- **Add/Remove Ports** - Manage ports from the UI
+- **Interface Selection** - Switch network interfaces from menu
+
+### Testing Beta Features
+
+```bash
+# Run tests for beta features
+cargo test --features beta
+
+# Run all tests
+cargo test
 ```
 
 ## AI Agent Integration
@@ -213,14 +251,68 @@ Each platform has its own module in `src/rs/platform/` with a `run()` function t
 ### Running Tests
 
 ```bash
-bun test
+# All tests
+cargo test
+
+# Unit tests only
+cargo test --lib
+
+# Integration tests only
+cargo test --test '*'
+
+# Tests with beta features
+cargo test --features beta
+
+# Specific test
+cargo test test_download_config
 ```
 
-### Linting
+All tests follow the [Rust Testing Standards](.kiro/steering/rust-testing-standards.md):
+
+- Unit tests are co-located with source code using `#[cfg(test)]`
+- Integration tests are in `src/test/rs/` with `_integration.rs` suffix
+- Currently 47 tests covering core functionality
+
+### Linting and Formatting
 
 ```bash
-bun run lint
+# Format code
+cargo fmt --all
+
+# Check formatting
+cargo fmt --all -- --check
+
+# Run clippy lints
+cargo clippy --all-targets
+
+# Check for unused dependencies
+cargo +nightly udeps --all-targets
 ```
+
+### Pre-commit Hooks
+
+All commits must pass pre-commit hooks. **Do not use `git commit --no-verify`**.
+
+Pre-commit hooks automatically run:
+
+- Rust formatting (`cargo fmt`)
+- Markdown linting (`markdownlint-cli2`)
+- Rust linting (`clippy`)
+- Unused dependencies check (`cargo udeps`)
+- Test organization validation
+- Build verification
+
+```bash
+# Pre-commit hooks run automatically before each commit
+# If a hook fails, fix the issues and try committing again
+
+# To manually run all pre-commit hooks:
+pre-commit run --all-files
+```
+
+**Important:** Using `--no-verify` bypasses quality checks and is **not allowed** in this project. All commits must pass pre-commit validation.
+
+**Setup:** Git hooks are configured in `.githooks/` and automatically used via `core.hooksPath`.
 
 ## Architecture
 

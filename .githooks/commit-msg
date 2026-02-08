@@ -1,0 +1,7 @@
+#!/bin/bash
+
+# This hook is informational - it reminds developers not to use --no-verify
+# Note: Git doesn't provide a way to prevent --no-verify at the client side
+# This is a policy enforcement through documentation and team practices
+
+exit 0
