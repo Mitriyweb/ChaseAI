@@ -114,3 +114,25 @@ fn test_verification_mode_documentation() {
     let rule = ConfigurationGenerator::generate_agent_rule(&config).unwrap();
     assert!(rule.contains("chase --verification"));
 }
+
+#[test]
+fn test_agent_rule_no_verification_port() {
+    let mut config = NetworkConfig::new();
+    for binding in &mut config.port_bindings {
+        if binding.role == app::network::port_config::PortRole::Verification {
+            binding.enabled = false;
+        }
+    }
+
+    let rule = ConfigurationGenerator::generate_agent_rule(&config).unwrap();
+    // Should NOT contain the mandatory system bridge section for specific port if none enabled
+    assert!(!rule.contains("POST http://"));
+}
+
+#[test]
+fn test_markdown_session_protocol_info() {
+    let config = NetworkConfig::new();
+    let md = ConfigurationGenerator::generate_markdown(&config).unwrap();
+    assert!(md.contains("## ⚡️ Session-Based Approval"));
+    assert!(md.contains("approved_session"));
+}

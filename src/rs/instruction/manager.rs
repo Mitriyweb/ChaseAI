@@ -24,6 +24,10 @@ impl ContextManager {
         })
     }
 
+    pub fn new_with_config(_config: &NetworkConfig) -> Result<Self> {
+        Self::new()
+    }
+
     pub fn new_with_storage(storage: ContextStorage) -> Result<Self> {
         let contexts = storage.load_all()?;
         Ok(Self {

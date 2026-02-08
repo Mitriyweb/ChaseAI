@@ -4,6 +4,7 @@ pub mod network;
 pub mod server;
 pub mod ui;
 
+use anyhow::Context;
 use std::sync::{Arc, Mutex};
 use tokio::runtime::Runtime;
 use tokio::sync::Mutex as TokioMutex;
@@ -25,24 +26,26 @@ pub struct App {
 }
 
 impl App {
-    pub fn new() -> Self {
-        let config = config::network_config::NetworkConfig::load().unwrap_or_default();
-        let runtime = Runtime::new().expect("Failed to create Tokio runtime");
+    pub fn new() -> anyhow::Result<Self> {
+        let config = config::network_config::NetworkConfig::load()?;
+        Self::new_with_config(config)
+    }
+
+    pub fn new_with_config(config: config::network_config::NetworkConfig) -> anyhow::Result<Self> {
+        let runtime =
+            Runtime::new().context("Failed to create Tokio runtime for ChaseAI application")?;
 
         let context_manager = Arc::new(Mutex::new(
-            instruction::manager::ContextManager::new().unwrap_or_else(|e| {
-                eprintln!("Failed to initialize ContextManager: {}", e);
-                // Creating a dummy context manager might be safer than panicking if we want to be robust
-                // But for now, since it depends on storage being accessible, panic is "safe" relative to undefined behavior
-                panic!("Critical startup error: {}", e);
-            }),
+            instruction::manager::ContextManager::new_with_config(&config).context(
+                "Failed to initialize ContextManager: storage might be inaccessible or corrupted",
+            )?,
         ));
 
         let server_pool = Arc::new(TokioMutex::new(server::pool::ServerPool::new(
             context_manager.clone(),
         )));
 
-        Self {
+        Ok(Self {
             name: "ChaseAI".to_string(),
             version: version().to_string(),
             config,
@@ -50,13 +53,7 @@ impl App {
             runtime,
             context_manager,
             server_pool,
-        }
-    }
-}
-
-impl Default for App {
-    fn default() -> Self {
-        Self::new()
+        })
     }
 }
 
@@ -285,24 +282,20 @@ impl App {
             }
 
             // Get current interface or use loopback
-            let interface = if let Ok(interfaces) =
-                crate::network::interface_detector::InterfaceDetector::detect_all()
-            {
-                interfaces
-                    .into_iter()
-                    .find(|i| i.interface_type == self.config.default_interface)
-                    .unwrap_or_else(|| crate::network::interface_detector::NetworkInterface {
-                        name: "lo0".to_string(),
-                        ip_address: "127.0.0.1".parse().unwrap(),
+            let interface = crate::network::interface_detector::InterfaceDetector::detect_all()
+                .ok()
+                .and_then(|interfaces| {
+                    interfaces
+                        .into_iter()
+                        .find(|i| i.interface_type == self.config.default_interface)
+                })
+                .unwrap_or_else(|| {
+                    crate::network::interface_detector::NetworkInterface {
+                        name: crate::network::interface_detector::InterfaceDetector::default_loopback_name().to_string(),
+                        ip_address: std::net::IpAddr::V4(std::net::Ipv4Addr::new(127, 0, 0, 1)),
                         interface_type: crate::network::interface_detector::InterfaceType::Loopback,
-                    })
-            } else {
-                crate::network::interface_detector::NetworkInterface {
-                    name: "lo0".to_string(),
-                    ip_address: "127.0.0.1".parse().unwrap(),
-                    interface_type: crate::network::interface_detector::InterfaceType::Loopback,
-                }
-            };
+                    }
+                });
 
             let new_binding = crate::network::port_config::PortBinding {
                 port: port_config.port,

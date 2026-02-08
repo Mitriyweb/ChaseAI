@@ -125,6 +125,53 @@ async fn test_server_startup_and_request() {
 }
 
 #[tokio::test]
+async fn test_verify_endpoint() {
+    let port = 8097;
+    let interface = NetworkInterface {
+        name: app::network::interface_detector::InterfaceDetector::default_loopback_name()
+            .to_string(),
+        ip_address: "127.0.0.1".parse().unwrap(),
+        interface_type: InterfaceType::Loopback,
+    };
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let storage = ContextStorage::with_path(temp_dir.path().join("contexts.json"));
+    let manager = Arc::new(Mutex::new(
+        ContextManager::new_with_storage(storage).unwrap(),
+    ));
+
+    let server = InstructionServer::new(port, interface, manager.clone());
+    server.start().await.unwrap();
+
+    tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
+
+    let client = reqwest::Client::new();
+    let payload = serde_json::json!({
+        "action": "test-action",
+        "reason": "testing",
+        "context": { "task_id": "TEST-1" }
+    });
+
+    let resp = client
+        .post(format!("http://127.0.0.1:{}/verify", port))
+        .json(&payload)
+        .send()
+        .await
+        .unwrap();
+
+    assert_eq!(resp.status(), StatusCode::OK);
+    let response_data: app::server::instruction_server::VerificationResponse =
+        resp.json().await.unwrap();
+
+    // On Linux/CI, it should return "cancelled" because dialog fails/not supported
+    // unless it's macOS where it might block or fail if no UI session.
+    // In our CI environment (Linux), it returns "cancelled" or "verification not supported" status
+    assert!(!response_data.verification_id.is_empty());
+
+    server.stop().await.unwrap();
+}
+
+#[tokio::test]
 async fn test_config_endpoint_json() {
     let port = 8096;
     let interface = NetworkInterface {

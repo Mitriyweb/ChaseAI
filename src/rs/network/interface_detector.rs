@@ -20,6 +20,15 @@ pub struct NetworkInterface {
 pub struct InterfaceDetector;
 
 impl InterfaceDetector {
+    /// Returns the platform-standard loopback interface name
+    pub fn default_loopback_name() -> &'static str {
+        if cfg!(target_os = "macos") {
+            "lo0"
+        } else {
+            "lo"
+        }
+    }
+
     pub fn detect_all() -> Result<Vec<NetworkInterface>> {
         let mut interfaces = Vec::new();
         let if_addrs = get_if_addrs()?;

@@ -124,3 +124,38 @@ fn test_empty_system_fails() {
     );
     assert!(ctx.is_err());
 }
+
+#[test]
+fn test_manager_sessions() -> Result<()> {
+    let temp_dir = tempfile::tempdir()?;
+    let storage = ContextStorage::with_path(temp_dir.path().join("contexts.json"));
+    let mut manager = ContextManager::new_with_storage(storage)?;
+
+    let session_id = "test-session".to_string();
+    let expires = chrono::Utc::now() + chrono::Duration::hours(1);
+    let allowed_actions = vec!["action1".to_string()];
+
+    manager
+        .sessions
+        .insert(session_id.clone(), (expires, allowed_actions));
+
+    assert!(manager.sessions.contains_key(&session_id));
+    let (exp, actions) = manager.sessions.get(&session_id).unwrap();
+    assert_eq!(*exp, expires);
+    assert_eq!(actions.len(), 1);
+
+    Ok(())
+}
+
+#[test]
+fn test_storage_invalid_json() -> Result<()> {
+    let temp_dir = tempfile::tempdir()?;
+    let config_path = temp_dir.path().join("invalid.json");
+    std::fs::write(&config_path, "{ invalid json }")?;
+
+    let storage = ContextStorage::with_path(config_path);
+    let result = storage.load_all();
+    assert!(result.is_err());
+
+    Ok(())
+}
