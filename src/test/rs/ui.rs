@@ -26,7 +26,6 @@ fn test_show_add_port_dialog_fallback() {
     }
 }
 
-
 #[test]
 fn test_download_config_with_selected_ports() {
     use app::config::generator::ConfigurationGenerator;
@@ -92,7 +91,7 @@ fn test_download_config_with_filtered_ports() {
     let mut config = NetworkConfig::new();
 
     // Add a second port
-    if config.port_bindings.len() > 0 {
+    if !config.port_bindings.is_empty() {
         let first_binding = config.port_bindings[0].clone();
         let mut second_binding = first_binding.clone();
         second_binding.port = 9999;
@@ -104,7 +103,7 @@ fn test_download_config_with_filtered_ports() {
     let all_ports = json["ports"].as_array().unwrap();
 
     // Verify we have multiple ports
-    assert!(all_ports.len() >= 1);
+    assert!(!all_ports.is_empty());
 
     // Each port should have endpoints
     for port in all_ports {
