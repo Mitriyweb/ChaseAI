@@ -113,7 +113,7 @@ jobs:
         run: bash scripts/macos/build-universal.sh
 
       - name: Create app bundle
-        run: bash build-macos-app.sh
+        run: bash scripts/macos/build-macos-app.sh
 
       - name: Sign application
         if: env.MACOS_CERTIFICATE != ''
