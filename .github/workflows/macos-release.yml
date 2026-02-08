@@ -97,6 +97,7 @@ jobs:
         run: bash build-macos-app.sh
 
       - name: Sign application
+        if: env.MACOS_CERTIFICATE != ''
         env:
           MACOS_CERTIFICATE: ${{ secrets.MACOS_CERTIFICATE }}
           MACOS_CERTIFICATE_PWD: ${{ secrets.MACOS_CERTIFICATE_PWD }}
@@ -106,6 +107,7 @@ jobs:
         run: bash scripts/macos/create-dmg.sh
 
       - name: Notarize DMG
+        if: env.NOTARIZATION_USERNAME != ''
         env:
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
@@ -117,6 +119,10 @@ jobs:
           shasum -a 256 *.dmg > checksums.sha256
           cat checksums.sha256
 
+      - name: Copy install script
+        run: |
+          cp scripts/install.sh target/release/install.sh
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -124,6 +130,7 @@ jobs:
           path: |
             target/release/*.dmg
             target/release/*.sha256
+            target/release/install.sh
           retention-days: 90
 
   create-github-release:
@@ -150,6 +157,7 @@ jobs:
           files: |
             release-artifacts/*.dmg
             release-artifacts/*.sha256
+            release-artifacts/install.sh
           body: |
             # ChaseAI v${{ needs.check-version.outputs.version }}
 
