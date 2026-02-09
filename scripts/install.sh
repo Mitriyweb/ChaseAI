@@ -48,15 +48,31 @@ fi
 
 # Verify checksum if available
 CHECKSUMS_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/checksums.sha256"
-if curl -s -f "$CHECKSUMS_URL" > /tmp/checksums.sha256; then
+CHECKSUMS_FILE="/tmp/checksums.sha256"
+if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSUMS_FILE" ]; then
     echo "🔐 Verifying checksum..."
-    cd /tmp
-    if ! shasum -a 256 -c checksums.sha256 | grep -q "chaseai-$LATEST_RELEASE-macos.dmg"; then
-        echo -e "${RED}❌ Error: Checksum verification failed${NC}"
-        rm -f "$DMG_FILE"
-        exit 1
+    
+    # Extract the expected checksum for our DMG file
+    EXPECTED_CHECKSUM=$(grep "chaseai-$LATEST_RELEASE-macos.dmg" "$CHECKSUMS_FILE" | awk '{print $1}')
+    
+    if [ -z "$EXPECTED_CHECKSUM" ]; then
+        echo -e "${YELLOW}⚠ Warning: Could not find checksum for DMG file${NC}"
+    else
+        # Calculate actual checksum
+        ACTUAL_CHECKSUM=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+        
+        if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
+            echo -e "${GREEN}✓ Checksum verified${NC}"
+        else
+            echo -e "${RED}❌ Error: Checksum verification failed${NC}"
+            echo "   Expected: $EXPECTED_CHECKSUM"
+            echo "   Actual:   $ACTUAL_CHECKSUM"
+            rm -f "$DMG_FILE"
+            exit 1
+        fi
     fi
-    echo -e "${GREEN}✓ Checksum verified${NC}"
+else
+    echo -e "${YELLOW}⚠ Warning: Could not download checksums file, skipping verification${NC}"
 fi
 
 # Mount DMG

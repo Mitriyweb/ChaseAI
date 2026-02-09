@@ -23,9 +23,11 @@ else
     echo "Building for PROD environment..."
 fi
 
-# Build the release binary
-echo "Building release binary..."
-cargo build --release $FEATURES
+# Only build if not already built (check if binary exists)
+if [ ! -f "target/release/chase-ai" ]; then
+    echo "Building release binary..."
+    cargo build --release $FEATURES
+fi
 
 # Skip macOS-specific app bundle creation on non-macOS platforms
 if [[ "$OSTYPE" != "darwin"* ]]; then

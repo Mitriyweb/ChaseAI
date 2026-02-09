@@ -123,7 +123,7 @@ jobs:
         run: bash scripts/macos/sign-app.sh
 
       - name: Create DMG
-        run: bash scripts/macos/create-dmg.sh
+        run: bash scripts/macos/create-dmg.sh ${{ needs.check-version.outputs.version }}
 
       - name: Notarize DMG
         if: env.NOTARIZATION_USERNAME != ''
@@ -135,8 +135,19 @@ jobs:
       - name: Generate checksums
         run: |
           cd target/release
-          shasum -a 256 *.dmg > checksums.sha256
-          cat checksums.sha256
+          # List files to debug
+          echo "Files in target/release:"
+          ls -lah *.dmg 2>/dev/null || echo "No DMG files found"
+          
+          # Generate checksums for all DMG files
+          if ls *.dmg 1> /dev/null 2>&1; then
+            shasum -a 256 *.dmg > checksums.sha256
+            echo "Checksums generated:"
+            cat checksums.sha256
+          else
+            echo "Error: No DMG files found in target/release"
+            exit 1
+          fi
 
       - name: Copy install script
         run: |
