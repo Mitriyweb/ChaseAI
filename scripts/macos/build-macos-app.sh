@@ -23,10 +23,12 @@ else
     echo "Building for PROD environment..."
 fi
 
-# Only build if not already built (check if binary exists)
+# Build the release binary (use the universal binary from build-universal.sh if available)
 if [ ! -f "target/release/chase-ai" ]; then
     echo "Building release binary..."
     cargo build --release $FEATURES
+else
+    echo "Using existing release binary..."
 fi
 
 # Skip macOS-specific app bundle creation on non-macOS platforms
