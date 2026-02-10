@@ -22,6 +22,10 @@ DMG_NAME="${BINARY_NAME}-${VERSION}-macos.dmg"
 DMG_PATH="${RELEASE_DIR}/${DMG_NAME}"
 TEMP_DMG_DIR="${RELEASE_DIR}/dmg-temp"
 
+echo "   Version: ${VERSION}"
+echo "   App Bundle: ${APP_BUNDLE}"
+echo "   DMG Path: ${DMG_PATH}"
+
 # Function to create DMG using hdiutil (fallback)
 create_dmg_hdiutil() {
   # Create a temporary DMG
@@ -41,8 +45,11 @@ create_dmg_hdiutil() {
 if [ ! -d "${APP_BUNDLE}" ]; then
   echo "❌ Error: App bundle not found at ${APP_BUNDLE}"
   echo "   Please run scripts/macos/build-macos-app.sh first"
+  ls -la "${RELEASE_DIR}/" || echo "Release directory doesn't exist"
   exit 1
 fi
+
+echo "✓ App bundle found"
 
 # Clean up any previous DMG creation
 rm -rf "${TEMP_DMG_DIR}"
@@ -80,6 +87,19 @@ fi
 # Verify DMG was created
 if [ ! -f "${DMG_PATH}" ]; then
   echo "❌ Error: DMG creation failed"
+  echo "   Expected path: ${DMG_PATH}"
+  ls -la "${RELEASE_DIR}/" || echo "Release directory doesn't exist"
+  exit 1
+fi
+
+echo "✓ DMG file created"
+
+# Check DMG file size
+DMG_SIZE=$(stat -f%z "${DMG_PATH}" 2>/dev/null || stat -c%s "${DMG_PATH}" 2>/dev/null || echo "unknown")
+echo "   Size: ${DMG_SIZE} bytes"
+
+if [ "${DMG_SIZE}" -eq 0 ]; then
+  echo "❌ Error: DMG file is empty (0 bytes)"
   exit 1
 fi
 

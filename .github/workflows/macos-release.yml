@@ -130,7 +130,7 @@ jobs:
         env:
           NOTARIZATION_USERNAME: ${{ secrets.NOTARIZATION_USERNAME }}
           NOTARIZATION_PASSWORD: ${{ secrets.NOTARIZATION_PASSWORD }}
-        run: bash scripts/macos/notarize-app.sh
+        run: bash scripts/macos/notarize-app.sh ${{ needs.check-version.outputs.version }}
 
       - name: Generate checksums
         run: |
