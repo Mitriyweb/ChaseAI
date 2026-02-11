@@ -32,6 +32,10 @@ create_dmg_hdiutil() {
   TEMP_DMG="${RELEASE_DIR}/temp-${BINARY_NAME}.dmg"
 
   echo "🎨 Creating DMG with hdiutil..."
+  echo "   Source folder: ${TEMP_DMG_DIR}"
+  echo "   Contents:"
+  ls -la "${TEMP_DMG_DIR}/"
+
   hdiutil create -volname "${APP_NAME}" \
     -srcfolder "${TEMP_DMG_DIR}" \
     -ov -format UDZO \
@@ -65,7 +69,7 @@ ln -s /Applications "${TEMP_DMG_DIR}/Applications"
 # Create DMG using create-dmg if available, otherwise use hdiutil
 if command -v create-dmg &> /dev/null; then
   echo "🎨 Creating DMG with create-dmg..."
-  create-dmg \
+  if create-dmg \
     --volname "${APP_NAME}" \
     --volicon "resources/icon.png" \
     --window-pos 200 120 \
@@ -75,10 +79,12 @@ if command -v create-dmg &> /dev/null; then
     --hide-extension "${APP_NAME}.app" \
     --app-drop-link 600 190 \
     "${DMG_PATH}" \
-    "${TEMP_DMG_DIR}/" || {
-      echo "⚠️  create-dmg failed, falling back to hdiutil..."
-      create_dmg_hdiutil
-    }
+    "${TEMP_DMG_DIR}/"; then
+    echo "✓ DMG created with create-dmg"
+  else
+    echo "⚠️  create-dmg failed, falling back to hdiutil..."
+    create_dmg_hdiutil
+  fi
 else
   echo "⚠️  create-dmg not found, using hdiutil..."
   create_dmg_hdiutil
