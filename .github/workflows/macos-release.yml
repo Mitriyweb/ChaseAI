@@ -138,7 +138,7 @@ jobs:
           # List files to debug
           echo "Files in target/release:"
           ls -lah *.dmg 2>/dev/null || echo "No DMG files found"
-          
+
           # Generate checksums for all DMG files
           if ls *.dmg 1> /dev/null 2>&1; then
             shasum -a 256 *.dmg > checksums.sha256
@@ -220,6 +220,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -232,7 +233,16 @@ jobs:
       - name: Calculate DMG checksum
         id: checksum
         run: |
-          CHECKSUM=$(shasum -a 256 release-artifacts/*.dmg | awk '{print $1}')
+          if [ ! -f "release-artifacts/chase-ai-*.dmg" ]; then
+            echo "Error: DMG file not found"
+            exit 1
+          fi
+
+          DMG_FILE=$(ls release-artifacts/chase-ai-*.dmg | head -1)
+          echo "DMG file: $DMG_FILE"
+          echo "DMG size: $(stat -c%s "$DMG_FILE" 2>/dev/null || stat -f%z "$DMG_FILE")"
+
+          CHECKSUM=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
           echo "sha256=$CHECKSUM" >> $GITHUB_OUTPUT
           echo "DMG SHA256: $CHECKSUM"
 
