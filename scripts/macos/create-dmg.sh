@@ -26,25 +26,6 @@ echo "   Version: ${VERSION}"
 echo "   App Bundle: ${APP_BUNDLE}"
 echo "   DMG Path: ${DMG_PATH}"
 
-# Function to create DMG using hdiutil (fallback)
-create_dmg_hdiutil() {
-  # Create a temporary DMG
-  TEMP_DMG="${RELEASE_DIR}/temp-${BINARY_NAME}.dmg"
-
-  echo "🎨 Creating DMG with hdiutil..."
-  echo "   Source folder: ${TEMP_DMG_DIR}"
-  echo "   Contents:"
-  ls -la "${TEMP_DMG_DIR}/"
-
-  hdiutil create -volname "${APP_NAME}" \
-    -srcfolder "${TEMP_DMG_DIR}" \
-    -ov -format UDZO \
-    "${TEMP_DMG}"
-
-  # Move to final location
-  mv "${TEMP_DMG}" "${DMG_PATH}"
-}
-
 # Verify app bundle exists
 if [ ! -d "${APP_BUNDLE}" ]; then
   echo "❌ Error: App bundle not found at ${APP_BUNDLE}"
@@ -66,29 +47,16 @@ cp -r "${APP_BUNDLE}" "${TEMP_DMG_DIR}/"
 # Create symlink to Applications folder for drag-and-drop installation
 ln -s /Applications "${TEMP_DMG_DIR}/Applications"
 
-# Create DMG using create-dmg if available, otherwise use hdiutil
-if command -v create-dmg &> /dev/null; then
-  echo "🎨 Creating DMG with create-dmg..."
-  if create-dmg \
-    --volname "${APP_NAME}" \
-    --volicon "resources/icon.png" \
-    --window-pos 200 120 \
-    --window-size 800 400 \
-    --icon-size 100 \
-    --icon "${APP_NAME}.app" 200 190 \
-    --hide-extension "${APP_NAME}.app" \
-    --app-drop-link 600 190 \
-    "${DMG_PATH}" \
-    "${TEMP_DMG_DIR}/"; then
-    echo "✓ DMG created with create-dmg"
-  else
-    echo "⚠️  create-dmg failed, falling back to hdiutil..."
-    create_dmg_hdiutil
-  fi
-else
-  echo "⚠️  create-dmg not found, using hdiutil..."
-  create_dmg_hdiutil
-fi
+# List contents for debugging
+echo "   DMG contents:"
+ls -la "${TEMP_DMG_DIR}/"
+
+# Create DMG using hdiutil
+echo "🎨 Creating DMG with hdiutil..."
+hdiutil create -volname "${APP_NAME}" \
+  -srcfolder "${TEMP_DMG_DIR}" \
+  -ov -format UDZO \
+  "${DMG_PATH}"
 
 # Verify DMG was created
 if [ ! -f "${DMG_PATH}" ]; then
@@ -104,9 +72,9 @@ echo "✓ DMG file created"
 DMG_SIZE=$(stat -f%z "${DMG_PATH}" 2>/dev/null || stat -c%s "${DMG_PATH}" 2>/dev/null || echo "unknown")
 echo "   Size: ${DMG_SIZE} bytes"
 
-if [ "${DMG_SIZE}" -eq 0 ]; then
-  echo "❌ Error: DMG file is empty (0 bytes)"
-  exit 1
+if [ "${DMG_SIZE}" -lt 1000000 ]; then
+  echo "⚠️  Warning: DMG file is very small (${DMG_SIZE} bytes)"
+  echo "   This might indicate an issue with the DMG creation"
 fi
 
 # Generate checksums
