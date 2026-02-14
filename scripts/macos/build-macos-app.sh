@@ -11,6 +11,8 @@ cd "$SCRIPT_DIR/../.."
 
 # Determine environment and features
 ENV=${1:-prod}
+shift || true
+EXTRA_ARGS="$@"
 FEATURES=""
 
 if [ "$ENV" == "beta" ]; then
@@ -23,13 +25,9 @@ else
     echo "Building for PROD environment..."
 fi
 
-# Build the release binary (use the universal binary from build-universal.sh if available)
-if [ ! -f "target/release/chase-ai" ]; then
-    echo "Building release binary..."
-    cargo build --release $FEATURES
-else
-    echo "Using existing release binary..."
-fi
+# Build the release binary
+echo "Building release binary..."
+cargo build --release $FEATURES $EXTRA_ARGS
 
 # Skip macOS-specific app bundle creation on non-macOS platforms
 if [[ "$OSTYPE" != "darwin"* ]]; then

@@ -250,5 +250,5 @@ For issues, questions, or feature requests, please visit:
 ## Related Documentation
 
 - [Building from Source](./building-from-source.md)
-- [Configuration Guide](./configuration.md)
-- [User Guide](./user-guide.md)
+- [AI Integration Guide](./ai-integration.md)
+- [Verification Workflow](./verification-workflow.md)

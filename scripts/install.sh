@@ -37,8 +37,8 @@ fi
 echo "   Latest version: $LATEST_RELEASE"
 
 # Download DMG
-DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chaseai-$LATEST_RELEASE-macos.dmg"
-DMG_FILE="/tmp/chaseai-$LATEST_RELEASE.dmg"
+DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
+DMG_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
 if ! curl -L -o "$DMG_FILE" "$DMG_URL"; then
@@ -53,7 +53,7 @@ if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSU
     echo "🔐 Verifying checksum..."
     
     # Extract the expected checksum for our DMG file
-    EXPECTED_CHECKSUM=$(grep "chaseai-$LATEST_RELEASE-macos.dmg" "$CHECKSUMS_FILE" | awk '{print $1}')
+    EXPECTED_CHECKSUM=$(grep "chase-ai-$LATEST_RELEASE-macos.dmg" "$CHECKSUMS_FILE" | awk '{print $1}')
     
     if [ -z "$EXPECTED_CHECKSUM" ]; then
         echo -e "${YELLOW}⚠ Warning: Could not find checksum for DMG file${NC}"

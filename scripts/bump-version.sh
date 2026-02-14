@@ -123,10 +123,15 @@ mv CHANGELOG.md.tmp CHANGELOG.md
 echo "$NEW_VERSION" > .version
 
 # Update Cargo.toml
-sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml && rm Cargo.toml.bak
 
-# Update package.json (add version field back temporarily for reference)
-# Note: package.json doesn't have version field anymore, but we keep it for reference
+# Update package.json
+if grep -q "\"version\":" package.json; then
+    sed -i.bak "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json && rm package.json.bak
+else
+    # Add version after description
+    sed -i.bak "/\"description\":/a \    \"version\": \"$NEW_VERSION\"," package.json && rm package.json.bak
+fi
 
 echo -e "${GREEN}✓ Version bumped to $NEW_VERSION${NC}"
 echo -e "${GREEN}✓ CHANGELOG.md updated${NC}"
