@@ -36,13 +36,20 @@ fi
 
 echo "   Latest version: $LATEST_RELEASE"
 
-# Download DMG
-DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
-DMG_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
+# Try to download tar.gz archive
+ARCHIVE_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.tar.gz"
+ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.tar.gz"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -L -o "$DMG_FILE" "$DMG_URL"; then
-    echo -e "${RED}❌ Error: Failed to download DMG${NC}"
+if ! curl -L -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
+    echo -e "${RED}❌ Error: Failed to download ChaseAI${NC}"
+    exit 1
+fi
+
+# Verify file is not empty
+if [ ! -s "$ARCHIVE_FILE" ]; then
+    echo -e "${RED}❌ Error: Downloaded file is empty${NC}"
+    rm -f "$ARCHIVE_FILE"
     exit 1
 fi
 
@@ -51,23 +58,23 @@ CHECKSUMS_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/check
 CHECKSUMS_FILE="/tmp/checksums.sha256"
 if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSUMS_FILE" ]; then
     echo "🔐 Verifying checksum..."
-    
-    # Extract the expected checksum for our DMG file
-    EXPECTED_CHECKSUM=$(grep "chase-ai-$LATEST_RELEASE-macos.dmg" "$CHECKSUMS_FILE" | awk '{print $1}')
-    
+
+    # Extract the expected checksum for our archive file
+    EXPECTED_CHECKSUM=$(grep "chase-ai-$LATEST_RELEASE-macos.tar.gz" "$CHECKSUMS_FILE" | awk '{print $1}')
+
     if [ -z "$EXPECTED_CHECKSUM" ]; then
-        echo -e "${YELLOW}⚠ Warning: Could not find checksum for DMG file${NC}"
+        echo -e "${YELLOW}⚠ Warning: Could not find checksum for archive file${NC}"
     else
         # Calculate actual checksum
-        ACTUAL_CHECKSUM=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
-        
+        ACTUAL_CHECKSUM=$(shasum -a 256 "$ARCHIVE_FILE" | awk '{print $1}')
+
         if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
             echo -e "${GREEN}✓ Checksum verified${NC}"
         else
             echo -e "${RED}❌ Error: Checksum verification failed${NC}"
             echo "   Expected: $EXPECTED_CHECKSUM"
             echo "   Actual:   $ACTUAL_CHECKSUM"
-            rm -f "$DMG_FILE"
+            rm -f "$ARCHIVE_FILE"
             exit 1
         fi
     fi
@@ -75,10 +82,10 @@ else
     echo -e "${YELLOW}⚠ Warning: Could not download checksums file, skipping verification${NC}"
 fi
 
-# Mount DMG
-echo "📂 Mounting DMG..."
-MOUNT_POINT=$(mktemp -d)
-hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+# Extract archive
+echo "📂 Extracting archive..."
+TEMP_DIR=$(mktemp -d)
+tar -xzf "$ARCHIVE_FILE" -C "$TEMP_DIR"
 
 # Copy app to Applications
 echo "📋 Installing ChaseAI to $INSTALL_DIR..."
@@ -87,15 +94,11 @@ if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
 
-cp -r "$MOUNT_POINT/$APP_NAME" "$INSTALL_DIR/"
-
-# Unmount DMG
-echo "🔓 Unmounting DMG..."
-hdiutil detach "$MOUNT_POINT"
+cp -r "$TEMP_DIR/$APP_NAME" "$INSTALL_DIR/"
 
 # Clean up
-rm -f "$DMG_FILE"
-rm -rf "$MOUNT_POINT"
+rm -f "$ARCHIVE_FILE"
+rm -rf "$TEMP_DIR"
 
 # Verify installation
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
