@@ -123,7 +123,7 @@ jobs:
         run: bash scripts/macos/sign-app.sh
 
       - name: Create DMG
-        run: bash scripts/macos/create-dmg.sh ${{ needs.check-version.outputs.version }}
+        run: bash scripts/macos/create-dmg.sh ${{ needs.check-version.outputs.version }} || bash scripts/macos/create-archive.sh ${{ needs.check-version.outputs.version }}
 
       - name: Notarize DMG
         if: env.NOTARIZATION_USERNAME != ''
@@ -159,6 +159,7 @@ jobs:
           name: macos-release-artifacts
           path: |
             target/release/*.dmg
+            target/release/*.tar.gz
             target/release/*.sha256
             target/release/install.sh
           retention-days: 90
@@ -199,6 +200,11 @@ jobs:
             - Download `chaseai-${{ needs.check-version.outputs.version }}-macos.dmg`
             - Mount the DMG and drag ChaseAI to Applications folder
             - Verify checksum: `shasum -a 256 -c checksums.sha256`
+
+            ### Tar.gz Archive (Alternative)
+            - Download `chase-ai-${{ needs.check-version.outputs.version }}-macos.tar.gz`
+            - Extract: `tar -xzf chase-ai-${{ needs.check-version.outputs.version }}-macos.tar.gz`
+            - Copy: `cp -r ChaseAI.app /Applications/`
 
             ### Homebrew Installation
             ```bash
