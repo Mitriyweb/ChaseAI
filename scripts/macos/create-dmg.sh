@@ -3,6 +3,7 @@
 # Create DMG installer for macOS
 # This script packages the ChaseAI application into a professional DMG installer
 # with background image and proper layout.
+# Falls back to tar.gz if DMG creation fails.
 
 set -e
 
@@ -10,7 +11,7 @@ set -e
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/../.."
 
-echo "📦 Creating DMG installer..."
+echo "📦 Creating macOS installer..."
 
 # Configuration
 APP_NAME="ChaseAI"
@@ -20,11 +21,12 @@ RELEASE_DIR="target/release"
 APP_BUNDLE="${RELEASE_DIR}/${APP_NAME}.app"
 DMG_NAME="${BINARY_NAME}-${VERSION}-macos.dmg"
 DMG_PATH="${RELEASE_DIR}/${DMG_NAME}"
+ARCHIVE_NAME="${BINARY_NAME}-${VERSION}-macos.tar.gz"
+ARCHIVE_PATH="${RELEASE_DIR}/${ARCHIVE_NAME}"
 TEMP_DMG_DIR="${RELEASE_DIR}/dmg-temp"
 
 echo "   Version: ${VERSION}"
 echo "   App Bundle: ${APP_BUNDLE}"
-echo "   DMG Path: ${DMG_PATH}"
 
 # Verify app bundle exists
 if [ ! -d "${APP_BUNDLE}" ]; then
@@ -36,69 +38,54 @@ fi
 
 echo "✓ App bundle found"
 
-# Clean up any previous DMG creation
+# Try to create DMG
+echo "🎨 Attempting to create DMG..."
 rm -rf "${TEMP_DMG_DIR}"
 mkdir -p "${TEMP_DMG_DIR}"
 
 # Copy app bundle to temp directory
-echo "📋 Preparing DMG contents..."
 cp -r "${APP_BUNDLE}" "${TEMP_DMG_DIR}/"
-
-# Create symlink to Applications folder for drag-and-drop installation
 ln -s /Applications "${TEMP_DMG_DIR}/Applications"
 
-# List contents for debugging
-echo "   DMG contents:"
-ls -la "${TEMP_DMG_DIR}/"
-
-# Create DMG using hdiutil
-echo "🎨 Creating DMG with hdiutil..."
-hdiutil create -volname "${APP_NAME}" \
+# Try DMG creation
+if hdiutil create -volname "${APP_NAME}" \
   -srcfolder "${TEMP_DMG_DIR}" \
   -ov -format UDZO \
-  "${DMG_PATH}"
+  "${DMG_PATH}" 2>/dev/null; then
+  echo "✓ DMG created successfully"
+  DMG_SIZE=$(stat -f%z "${DMG_PATH}" 2>/dev/null || stat -c%s "${DMG_PATH}" 2>/dev/null || echo "0")
+  if [ "${DMG_SIZE}" -gt 1000000 ]; then
+    echo "   Size: $(du -h "${DMG_PATH}" | cut -f1)"
+    # Generate checksums for DMG
+    shasum -a 256 "${DMG_PATH}" > "${DMG_PATH}.sha256"
+    rm -rf "${TEMP_DMG_DIR}"
+    exit 0
+  fi
+fi
 
-# Verify DMG was created
-if [ ! -f "${DMG_PATH}" ]; then
-  echo "❌ Error: DMG creation failed"
-  echo "   Expected path: ${DMG_PATH}"
-  ls -la "${RELEASE_DIR}/" || echo "Release directory doesn't exist"
+# DMG creation failed or file is too small, fall back to tar.gz
+echo "⚠️  DMG creation failed or file is too small, creating tar.gz archive instead..."
+rm -f "${DMG_PATH}" "${DMG_PATH}.sha256"
+rm -rf "${TEMP_DMG_DIR}"
+
+echo "🎨 Creating tar.gz archive..."
+cd "${RELEASE_DIR}"
+tar -czf "${ARCHIVE_NAME}" "${APP_NAME}.app"
+cd - > /dev/null
+
+if [ ! -f "${ARCHIVE_PATH}" ]; then
+  echo "❌ Error: Archive creation failed"
   exit 1
 fi
 
-echo "✓ DMG file created"
+echo "✓ Archive created successfully"
+echo "   Size: $(du -h "${ARCHIVE_PATH}" | cut -f1)"
 
-# Check DMG file size
-DMG_SIZE=$(stat -f%z "${DMG_PATH}" 2>/dev/null || stat -c%s "${DMG_PATH}" 2>/dev/null || echo "unknown")
-echo "   Size: ${DMG_SIZE} bytes"
+# Generate checksums for archive
+shasum -a 256 "${ARCHIVE_PATH}" > "${ARCHIVE_PATH}.sha256"
 
-if [ "${DMG_SIZE}" -lt 1000000 ]; then
-  echo "⚠️  Warning: DMG file is very small (${DMG_SIZE} bytes)"
-  echo "   This might indicate an issue with the DMG creation"
-fi
-
-# Generate checksums
-echo "🔐 Generating checksums..."
-SHA256_FILE="${DMG_PATH}.sha256"
-shasum -a 256 "${DMG_PATH}" > "${SHA256_FILE}"
-
-# Display checksum
-echo "   SHA256: $(cat ${SHA256_FILE})"
-
-# Clean up temp directory
-rm -rf "${TEMP_DMG_DIR}"
-
-# Display file info
-DMG_SIZE=$(du -h "${DMG_PATH}" | cut -f1)
 echo ""
-echo "✅ DMG created successfully!"
-echo "   Name: ${DMG_NAME}"
-echo "   Size: ${DMG_SIZE}"
-echo "   Path: ${DMG_PATH}"
-echo "   Checksum: ${SHA256_FILE}"
-echo ""
-echo "To test the DMG:"
-echo "  hdiutil attach ${DMG_PATH}"
-echo "  # Drag ChaseAI.app to Applications folder"
-echo "  hdiutil detach /Volumes/${APP_NAME}"
+echo "✅ Installer created successfully!"
+echo "   Format: tar.gz (DMG creation failed)"
+echo "   Path: ${ARCHIVE_PATH}"
 echo ""
