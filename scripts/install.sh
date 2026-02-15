@@ -41,8 +41,17 @@ DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$L
 DMG_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -L -o "$DMG_FILE" "$DMG_URL"; then
-    echo -e "${RED}❌ Error: Failed to download DMG${NC}"
+if ! curl -sL -f -o "$DMG_FILE" "$DMG_URL"; then
+    echo -e "${RED}❌ Error: Failed to download DMG from $DMG_URL${NC}"
+    echo -e "${YELLOW}Please check your internet connection or if the release exists.${NC}"
+    exit 1
+fi
+
+# Check if the downloaded file is too small (e.g. 404 page)
+FILE_SIZE=$(stat -f%z "$DMG_FILE" 2>/dev/null || stat -c%s "$DMG_FILE" 2>/dev/null || echo "0")
+if [ "$FILE_SIZE" -lt 1000 ]; then
+    echo -e "${RED}❌ Error: Downloaded file is too small ($FILE_SIZE bytes). It might be a 404 page.${NC}"
+    rm -f "$DMG_FILE"
     exit 1
 fi
 

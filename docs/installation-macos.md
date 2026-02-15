@@ -70,7 +70,7 @@ Homebrew provides easy installation and updates via the command line.
 1. **Add the ChaseAI Tap**
 
    ```bash
-   brew tap chaseai/chaseai
+   brew tap mitriyweb/chaseai
    ```
 
 2. **Install ChaseAI**
@@ -143,7 +143,7 @@ The ChaseAI tap has not been added to your Homebrew installation.
 Add the tap and try again:
 
 ```bash
-brew tap chaseai/chaseai
+brew tap mitriyweb/chaseai
 brew install chaseai
 ```
 
@@ -181,7 +181,7 @@ If you have an older version and `brew upgrade` doesn't work:
 ```bash
 # Remove and reinstall
 brew uninstall chaseai
-brew tap --repair chaseai/chaseai
+brew tap --repair mitriyweb/chaseai
 brew install chaseai
 ```
 

@@ -197,7 +197,7 @@ jobs:
             ## macOS Distribution
 
             ### DMG Installer
-            - Download `chaseai-${{ needs.check-version.outputs.version }}-macos.dmg`
+            - Download `chase-ai-${{ needs.check-version.outputs.version }}-macos.dmg`
             - Mount the DMG and drag ChaseAI to Applications folder
             - Verify checksum: `shasum -a 256 -c checksums.sha256`
 
@@ -208,7 +208,7 @@ jobs:
 
             ### Homebrew Installation
             ```bash
-            brew tap chaseai/chaseai
+            brew tap mitriyweb/chaseai
             brew install chaseai
             ```
 
@@ -267,8 +267,8 @@ jobs:
           cat > homebrew-tap/Formula/chaseai.rb << 'EOF'
           class Chaseai < Formula
             desc "Local control and orchestration system for AI agents"
-            homepage "https://github.com/chaseai/chaseai"
-            url "https://github.com/chaseai/chaseai/releases/download/v#{version}/chaseai-#{version}-macos.dmg"
+            homepage "https://github.com/Mitriyweb/ChaseAI"
+            url "https://github.com/Mitriyweb/ChaseAI/releases/download/v#{version}/chase-ai-#{version}-macos.dmg"
             sha256 "${{ steps.checksum.outputs.sha256 }}"
             version "${{ needs.check-version.outputs.version }}"
 
