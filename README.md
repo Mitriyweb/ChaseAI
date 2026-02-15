@@ -92,8 +92,22 @@ To enable beta features, build with the `beta` feature flag:
 cargo build --features beta
 
 # Or with bun
-bun run build --features beta
+bun run build:app:beta
 ```
+
+### Building the Installer (macOS)
+
+To create a professional DMG installer:
+
+```bash
+# Production installer
+bun run build:installer
+
+# Beta installer
+bun run build:installer:beta
+```
+
+This will produce a `.dmg` file in `target/release/`.
 
 ### Available in Beta
 

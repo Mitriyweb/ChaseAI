@@ -30,9 +30,14 @@ read -p "Enter new version (or press Enter to keep current): " NEW_VERSION
 if [ ! -z "$NEW_VERSION" ]; then
     echo "Updating version to $NEW_VERSION..."
     # Update Cargo.toml
-    sed -i '' "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml
+    sed -i.bak "s/^version = \".*\"/version = \"$NEW_VERSION\"/" Cargo.toml && rm Cargo.toml.bak
     # Update package.json
-    sed -i '' "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json
+    if grep -q "\"version\":" package.json; then
+        sed -i.bak "s/\"version\": \".*\"/\"version\": \"$NEW_VERSION\"/" package.json && rm package.json.bak
+    else
+        # Add version after description
+        sed -i.bak "/\"description\":/a \    \"version\": \"$NEW_VERSION\"," package.json && rm package.json.bak
+    fi
     # Update .version file
     echo "$NEW_VERSION" > .version
 
@@ -51,7 +56,7 @@ echo "🚀 preparing release $TAG..."
 
 # 2. Build App (Prod)
 echo "🔨 Building Production App..."
-npm run build:app
+bun run build:app
 
 # 3. Create DMG
 echo "📦 Creating DMG..."
