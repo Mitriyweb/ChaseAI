@@ -37,26 +37,50 @@ fi
 echo "   Latest version: $LATEST_RELEASE"
 
 # Download DMG
-DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chaseai-$LATEST_RELEASE-macos.dmg"
-DMG_FILE="/tmp/chaseai-$LATEST_RELEASE.dmg"
-
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -L -o "$DMG_FILE" "$DMG_URL"; then
-    echo -e "${RED}❌ Error: Failed to download DMG${NC}"
-    exit 1
+
+# Try to get DMG URL from GitHub API first (most robust)
+DMG_URL=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep '"browser_download_url":' | grep '.dmg"' | head -n 1 | cut -d '"' -f 4)
+
+# Fallback to naming conventions if API fails
+if [ -z "$DMG_URL" ]; then
+    DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
+fi
+
+DMG_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
+
+if ! curl -L -f -o "$DMG_FILE" "$DMG_URL"; then
+    # Try alternative naming if primary fallback failed
+    DMG_URL_ALT="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chaseai-$LATEST_RELEASE-macos.dmg"
+    if ! curl -L -f -o "$DMG_FILE" "$DMG_URL_ALT"; then
+        echo -e "${RED}❌ Error: Failed to download DMG from $DMG_URL${NC}"
+        exit 1
+    fi
 fi
 
 # Verify checksum if available
 CHECKSUMS_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/checksums.sha256"
-if curl -s -f "$CHECKSUMS_URL" > /tmp/checksums.sha256; then
+if curl -s -f -L "$CHECKSUMS_URL" > /tmp/checksums.sha256; then
     echo "🔐 Verifying checksum..."
     cd /tmp
-    if ! shasum -a 256 -c checksums.sha256 | grep -q "chaseai-$LATEST_RELEASE-macos.dmg"; then
-        echo -e "${RED}❌ Error: Checksum verification failed${NC}"
-        rm -f "$DMG_FILE"
-        exit 1
+    DMG_FILENAME=$(basename "$DMG_FILE")
+    # Try to verify using the current filename
+    if shasum -a 256 -c checksums.sha256 2>/dev/null | grep -q "$DMG_FILENAME: OK"; then
+        echo -e "${GREEN}✓ Checksum verified${NC}"
+    else
+        # If that fails, maybe the name in checksums file is different
+        # Check if any .dmg in checksums file matches our file's hash
+        ACTUAL_HASH=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+        if grep -q "$ACTUAL_HASH" checksums.sha256; then
+            echo -e "${GREEN}✓ Checksum verified (hash match)${NC}"
+        else
+            echo -e "${RED}❌ Error: Checksum verification failed${NC}"
+            rm -f "$DMG_FILE"
+            exit 1
+        fi
     fi
-    echo -e "${GREEN}✓ Checksum verified${NC}"
+else
+    echo -e "${YELLOW}⚠ Warning: Could not download checksums file, skipping verification${NC}"
 fi
 
 # Mount DMG
