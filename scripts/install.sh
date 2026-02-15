@@ -36,22 +36,29 @@ fi
 
 echo "   Latest version: $LATEST_RELEASE"
 
-# Download DMG
-DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
-DMG_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
+# Try to download tar.gz archive (preferred for script-based install)
+ARCHIVE_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.tar.gz"
+ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.tar.gz"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -sL -f -o "$DMG_FILE" "$DMG_URL"; then
-    echo -e "${RED}❌ Error: Failed to download DMG from $DMG_URL${NC}"
-    echo -e "${YELLOW}Please check your internet connection or if the release exists.${NC}"
-    exit 1
+if ! curl -sL -f -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
+    echo -e "${YELLOW}⚠ Warning: Failed to download tar.gz, trying DMG fallback...${NC}"
+    DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
+    ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
+    if ! curl -sL -f -o "$ARCHIVE_FILE" "$DMG_URL"; then
+        echo -e "${RED}❌ Error: Failed to download both tar.gz and DMG${NC}"
+        exit 1
+    fi
+    IS_DMG=true
+else
+    IS_DMG=false
 fi
 
-# Check if the downloaded file is too small (e.g. 404 page)
-FILE_SIZE=$(stat -f%z "$DMG_FILE" 2>/dev/null || stat -c%s "$DMG_FILE" 2>/dev/null || echo "0")
+# Verify file is not empty and not a 404 page
+FILE_SIZE=$(stat -f%z "$ARCHIVE_FILE" 2>/dev/null || stat -c%s "$ARCHIVE_FILE" 2>/dev/null || echo "0")
 if [ "$FILE_SIZE" -lt 1000 ]; then
     echo -e "${RED}❌ Error: Downloaded file is too small ($FILE_SIZE bytes). It might be a 404 page.${NC}"
-    rm -f "$DMG_FILE"
+    rm -f "$ARCHIVE_FILE"
     exit 1
 fi
 
@@ -61,14 +68,14 @@ CHECKSUMS_FILE="/tmp/checksums.sha256"
 if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSUMS_FILE" ]; then
     echo "🔐 Verifying checksum..."
     
-    # Extract the expected checksum for our DMG file
-    EXPECTED_CHECKSUM=$(grep "chase-ai-$LATEST_RELEASE-macos.dmg" "$CHECKSUMS_FILE" | awk '{print $1}')
+    FILENAME=$(basename "$ARCHIVE_FILE")
+    EXPECTED_CHECKSUM=$(grep "$FILENAME" "$CHECKSUMS_FILE" | awk '{print $1}')
     
     if [ -z "$EXPECTED_CHECKSUM" ]; then
-        echo -e "${YELLOW}⚠ Warning: Could not find checksum for DMG file${NC}"
+        echo -e "${YELLOW}⚠ Warning: Could not find checksum for $FILENAME in checksums.sha256${NC}"
     else
         # Calculate actual checksum
-        ACTUAL_CHECKSUM=$(shasum -a 256 "$DMG_FILE" | awk '{print $1}')
+        ACTUAL_CHECKSUM=$(shasum -a 256 "$ARCHIVE_FILE" | awk '{print $1}')
         
         if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
             echo -e "${GREEN}✓ Checksum verified${NC}"
@@ -76,34 +83,44 @@ if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSU
             echo -e "${RED}❌ Error: Checksum verification failed${NC}"
             echo "   Expected: $EXPECTED_CHECKSUM"
             echo "   Actual:   $ACTUAL_CHECKSUM"
-            rm -f "$DMG_FILE"
+            rm -f "$ARCHIVE_FILE"
             exit 1
         fi
     fi
 else
-    echo -e "${YELLOW}⚠ Warning: Could not download checksums file, skipping verification${NC}"
+    echo -e "${YELLOW}⚠ Warning: Could not download checksums.sha256 file, skipping verification${NC}"
 fi
 
-# Mount DMG
-echo "📂 Mounting DMG..."
+# Extract and install
+echo "📂 Installing..."
 MOUNT_POINT=$(mktemp -d)
-hdiutil attach "$DMG_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+
+if [ "$IS_DMG" = true ]; then
+    echo "   Mounting DMG..."
+    hdiutil attach "$ARCHIVE_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+    SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
+else
+    echo "   Extracting archive..."
+    tar -xzf "$ARCHIVE_FILE" -C "$MOUNT_POINT"
+    SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
+fi
 
 # Copy app to Applications
-echo "📋 Installing ChaseAI to $INSTALL_DIR..."
+echo "📋 Copying to $INSTALL_DIR..."
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     echo "   Removing existing installation..."
     rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
 
-cp -r "$MOUNT_POINT/$APP_NAME" "$INSTALL_DIR/"
+cp -r "$SOURCE_PATH" "$INSTALL_DIR/"
 
-# Unmount DMG
-echo "🔓 Unmounting DMG..."
-hdiutil detach "$MOUNT_POINT"
+# Cleanup
+if [ "$IS_DMG" = true ]; then
+    echo "   Unmounting DMG..."
+    hdiutil detach "$MOUNT_POINT"
+fi
 
-# Clean up
-rm -f "$DMG_FILE"
+rm -f "$ARCHIVE_FILE"
 rm -rf "$MOUNT_POINT"
 
 # Verify installation
