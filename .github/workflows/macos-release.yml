@@ -113,7 +113,17 @@ jobs:
         run: bash scripts/macos/build-universal.sh
 
       - name: Create app bundle
-        run: bash scripts/macos/build-macos-app.sh
+        run: bash scripts/macos/build-macos-app.sh prod
+
+      - name: Verify app bundle
+        run: |
+          if [ ! -d "target/release/ChaseAI.app" ]; then
+            echo "❌ Error: App bundle not found"
+            ls -la target/release/
+            exit 1
+          fi
+          echo "✓ App bundle verified"
+          du -sh target/release/ChaseAI.app
 
       - name: Sign application
         if: env.MACOS_CERTIFICATE != ''
