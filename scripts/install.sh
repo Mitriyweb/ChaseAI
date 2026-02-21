@@ -36,19 +36,28 @@ fi
 
 echo "   Latest version: $LATEST_RELEASE"
 
-# Try to download tar.gz archive
+# Try to download tar.gz archive (preferred for script-based install)
 ARCHIVE_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.tar.gz"
 ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.tar.gz"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -L -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
-    echo -e "${RED}❌ Error: Failed to download ChaseAI${NC}"
-    exit 1
+if ! curl -sL -f -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
+    echo -e "${YELLOW}⚠ Warning: Failed to download tar.gz, trying DMG fallback...${NC}"
+    DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
+    ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
+    if ! curl -sL -f -o "$ARCHIVE_FILE" "$DMG_URL"; then
+        echo -e "${RED}❌ Error: Failed to download both tar.gz and DMG${NC}"
+        exit 1
+    fi
+    IS_DMG=true
+else
+    IS_DMG=false
 fi
 
-# Verify file is not empty
-if [ ! -s "$ARCHIVE_FILE" ]; then
-    echo -e "${RED}❌ Error: Downloaded file is empty${NC}"
+# Verify file is not empty and not a 404 page
+FILE_SIZE=$(stat -f%z "$ARCHIVE_FILE" 2>/dev/null || stat -c%s "$ARCHIVE_FILE" 2>/dev/null || echo "0")
+if [ "$FILE_SIZE" -lt 1000 ]; then
+    echo -e "${RED}❌ Error: Downloaded file is too small ($FILE_SIZE bytes). It might be a 404 page.${NC}"
     rm -f "$ARCHIVE_FILE"
     exit 1
 fi
@@ -59,11 +68,11 @@ CHECKSUMS_FILE="/tmp/checksums.sha256"
 if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSUMS_FILE" ]; then
     echo "🔐 Verifying checksum..."
 
-    # Extract the expected checksum for our archive file
-    EXPECTED_CHECKSUM=$(grep "chase-ai-$LATEST_RELEASE-macos.tar.gz" "$CHECKSUMS_FILE" | awk '{print $1}')
+    FILENAME=$(basename "$ARCHIVE_FILE")
+    EXPECTED_CHECKSUM=$(grep "$FILENAME" "$CHECKSUMS_FILE" | awk '{print $1}')
 
     if [ -z "$EXPECTED_CHECKSUM" ]; then
-        echo -e "${YELLOW}⚠ Warning: Could not find checksum for archive file${NC}"
+        echo -e "${YELLOW}⚠ Warning: Could not find checksum for $FILENAME in checksums.sha256${NC}"
     else
         # Calculate actual checksum
         ACTUAL_CHECKSUM=$(shasum -a 256 "$ARCHIVE_FILE" | awk '{print $1}')
@@ -79,26 +88,40 @@ if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSU
         fi
     fi
 else
-    echo -e "${YELLOW}⚠ Warning: Could not download checksums file, skipping verification${NC}"
+    echo -e "${YELLOW}⚠ Warning: Could not download checksums.sha256 file, skipping verification${NC}"
 fi
 
-# Extract archive
-echo "📂 Extracting archive..."
-TEMP_DIR=$(mktemp -d)
-tar -xzf "$ARCHIVE_FILE" -C "$TEMP_DIR"
+# Extract and install
+echo "📂 Installing..."
+MOUNT_POINT=$(mktemp -d)
+
+if [ "$IS_DMG" = true ]; then
+    echo "   Mounting DMG..."
+    hdiutil attach "$ARCHIVE_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+    SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
+else
+    echo "   Extracting archive..."
+    tar -xzf "$ARCHIVE_FILE" -C "$MOUNT_POINT"
+    SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
+fi
 
 # Copy app to Applications
-echo "📋 Installing ChaseAI to $INSTALL_DIR..."
+echo "📋 Copying to $INSTALL_DIR..."
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     echo "   Removing existing installation..."
     rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
 
-cp -r "$TEMP_DIR/$APP_NAME" "$INSTALL_DIR/"
+cp -r "$SOURCE_PATH" "$INSTALL_DIR/"
 
-# Clean up
+# Cleanup
+if [ "$IS_DMG" = true ]; then
+    echo "   Unmounting DMG..."
+    hdiutil detach "$MOUNT_POINT"
+fi
+
 rm -f "$ARCHIVE_FILE"
-rm -rf "$TEMP_DIR"
+rm -rf "$MOUNT_POINT"
 
 # Verify installation
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then

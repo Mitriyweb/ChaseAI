@@ -3,8 +3,8 @@
 
 class Chaseai < Formula
   desc "Local control and orchestration system for AI agents"
-  homepage "https://github.com/chaseai/chaseai"
-  url "https://github.com/chaseai/chaseai/releases/download/v0.1.0/chase-ai-0.1.0-macos.dmg"
+  homepage "https://github.com/Mitriyweb/ChaseAI"
+  url "https://github.com/Mitriyweb/ChaseAI/releases/download/v#{version}/chase-ai-#{version}-macos.dmg"
   sha256 "0000000000000000000000000000000000000000000000000000000000000000"
   version "0.1.0"
 
