@@ -18,9 +18,11 @@
         "build:rust:beta": "cargo build --release --features beta",
         "build:app": "./scripts/macos/build-macos-app.sh prod",
         "build:app:beta": "./scripts/macos/build-macos-app.sh beta",
+        "build:archive": "./scripts/macos/create-archive.sh $(cat .version)",
+        "build:dmg": "./scripts/macos/create-dmg.sh $(cat .version)",
         "build:universal": "./scripts/macos/build-universal.sh",
-        "build:installer": "bun run build:app && ./scripts/macos/create-dmg.sh $(cat .version)",
-        "build:installer:beta": "bun run build:app:beta && ./scripts/macos/create-dmg.sh $(cat .version)",
+        "build:installer": "bun run build:app && bun run build:archive && bun run build:dmg",
+        "build:installer:beta": "bun run build:app:beta && bun run build:archive && bun run build:dmg",
         "audit": "bun audit",
         "prepare": "git config --unset-all --local core.hooksPath || true && prek install || true",
         "bump": "bash scripts/bump-version.sh"

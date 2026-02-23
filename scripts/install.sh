@@ -26,11 +26,12 @@ if [[ "$OSTYPE" != "darwin"* ]]; then
 fi
 
 # Get the latest release version
-echo "📥 Fetching latest release..."
-LATEST_RELEASE=$(curl -s https://api.github.com/repos/$REPO/releases/latest | grep '"tag_name"' | sed -E 's/.*"v([^"]+)".*/\1/')
+echo "📥 Fetching latest release information..."
+# Use a more robust way to get the latest tag
+LATEST_RELEASE=$(curl -sL https://api.github.com/repos/$REPO/releases/latest | grep '"tag_name"' | sed -E 's/.*"v?([^"]+)".*/\1/')
 
 if [ -z "$LATEST_RELEASE" ]; then
-    echo -e "${RED}❌ Error: Could not fetch latest release${NC}"
+    echo -e "${RED}❌ Error: Could not fetch latest release version from GitHub API${NC}"
     exit 1
 fi
 
@@ -38,26 +39,43 @@ echo "   Latest version: $LATEST_RELEASE"
 
 # Try to download tar.gz archive (preferred for script-based install)
 ARCHIVE_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.tar.gz"
-ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.tar.gz"
+ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE-macos.tar.gz"
 
 echo "📦 Downloading ChaseAI $LATEST_RELEASE..."
-if ! curl -sL -f -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
+DOWNLOAD_SUCCESS=false
+
+# Use -f to fail on HTTP errors
+if curl -sL -f -o "$ARCHIVE_FILE" "$ARCHIVE_URL"; then
+    DOWNLOAD_SUCCESS=true
+    IS_DMG=false
+else
     echo -e "${YELLOW}⚠ Warning: Failed to download tar.gz, trying DMG fallback...${NC}"
     DMG_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.dmg"
-    ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE.dmg"
-    if ! curl -sL -f -o "$ARCHIVE_FILE" "$DMG_URL"; then
-        echo -e "${RED}❌ Error: Failed to download both tar.gz and DMG${NC}"
-        exit 1
+    ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE-macos.dmg"
+    if curl -sL -f -o "$ARCHIVE_FILE" "$DMG_URL"; then
+        DOWNLOAD_SUCCESS=true
+        IS_DMG=true
+    else
+        # Try without 'v' prefix in download URL if it failed
+        ARCHIVE_URL_NO_V="https://github.com/$REPO/releases/download/$LATEST_RELEASE/chase-ai-$LATEST_RELEASE-macos.tar.gz"
+        ARCHIVE_FILE="/tmp/chase-ai-$LATEST_RELEASE-macos.tar.gz"
+        if curl -sL -f -o "$ARCHIVE_FILE" "$ARCHIVE_URL_NO_V"; then
+             DOWNLOAD_SUCCESS=true
+             IS_DMG=false
+        fi
     fi
-    IS_DMG=true
-else
-    IS_DMG=false
+fi
+
+if [ "$DOWNLOAD_SUCCESS" = false ]; then
+    echo -e "${RED}❌ Error: Failed to download both tar.gz and DMG for version $LATEST_RELEASE${NC}"
+    echo "   Check if the assets exist at: https://github.com/$REPO/releases/latest"
+    exit 1
 fi
 
 # Verify file is not empty and not a 404 page
 FILE_SIZE=$(stat -f%z "$ARCHIVE_FILE" 2>/dev/null || stat -c%s "$ARCHIVE_FILE" 2>/dev/null || echo "0")
-if [ "$FILE_SIZE" -lt 1000 ]; then
-    echo -e "${RED}❌ Error: Downloaded file is too small ($FILE_SIZE bytes). It might be a 404 page.${NC}"
+if [ "$FILE_SIZE" -lt 10000 ]; then
+    echo -e "${RED}❌ Error: Downloaded file is too small ($FILE_SIZE bytes). Download might be corrupted or asset is missing.${NC}"
     rm -f "$ARCHIVE_FILE"
     exit 1
 fi
@@ -65,18 +83,15 @@ fi
 # Verify checksum if available
 CHECKSUMS_URL="https://github.com/$REPO/releases/download/v$LATEST_RELEASE/checksums.sha256"
 CHECKSUMS_FILE="/tmp/checksums.sha256"
-if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSUMS_FILE" ]; then
+if curl -sL -f -o "$CHECKSUMS_FILE" "$CHECKSUMS_URL" 2>/dev/null || curl -sL -f -o "$CHECKSUMS_FILE" "https://github.com/$REPO/releases/download/$LATEST_RELEASE/checksums.sha256" 2>/dev/null; then
     echo "🔐 Verifying checksum..."
-
     FILENAME=$(basename "$ARCHIVE_FILE")
     EXPECTED_CHECKSUM=$(grep "$FILENAME" "$CHECKSUMS_FILE" | awk '{print $1}')
 
     if [ -z "$EXPECTED_CHECKSUM" ]; then
         echo -e "${YELLOW}⚠ Warning: Could not find checksum for $FILENAME in checksums.sha256${NC}"
     else
-        # Calculate actual checksum
         ACTUAL_CHECKSUM=$(shasum -a 256 "$ARCHIVE_FILE" | awk '{print $1}')
-
         if [ "$EXPECTED_CHECKSUM" = "$ACTUAL_CHECKSUM" ]; then
             echo -e "${GREEN}✓ Checksum verified${NC}"
         else
@@ -88,7 +103,7 @@ if curl -s -f "$CHECKSUMS_URL" > "$CHECKSUMS_FILE" 2>/dev/null && [ -s "$CHECKSU
         fi
     fi
 else
-    echo -e "${YELLOW}⚠ Warning: Could not download checksums.sha256 file, skipping verification${NC}"
+    echo -e "${YELLOW}⚠ Warning: Could not download checksums.sha256, skipping verification${NC}"
 fi
 
 # Extract and install
@@ -97,27 +112,45 @@ MOUNT_POINT=$(mktemp -d)
 
 if [ "$IS_DMG" = true ]; then
     echo "   Mounting DMG..."
-    hdiutil attach "$ARCHIVE_FILE" -mountpoint "$MOUNT_POINT" -nobrowse
+    if ! hdiutil attach "$ARCHIVE_FILE" -mountpoint "$MOUNT_POINT" -nobrowse -quiet; then
+        echo -e "${RED}❌ Error: Failed to mount DMG. The file might be corrupted.${NC}"
+        rm -f "$ARCHIVE_FILE"
+        exit 1
+    fi
     SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
 else
     echo "   Extracting archive..."
-    tar -xzf "$ARCHIVE_FILE" -C "$MOUNT_POINT"
-    SOURCE_PATH="$MOUNT_POINT/$APP_NAME"
+    if ! tar -xzf "$ARCHIVE_FILE" -C "$MOUNT_POINT"; then
+        echo -e "${RED}❌ Error: Failed to extract tar.gz archive. The file might be corrupted.${NC}"
+        rm -f "$ARCHIVE_FILE"
+        exit 1
+    fi
+    # Sometimes the app is inside a subfolder in the archive
+    SOURCE_PATH=$(find "$MOUNT_POINT" -name "$APP_NAME" -maxdepth 2 | head -n 1)
 fi
 
 # Copy app to Applications
+if [ -z "$SOURCE_PATH" ] || [ ! -d "$SOURCE_PATH" ]; then
+    echo -e "${RED}❌ Error: Could not find $APP_NAME in the downloaded package${NC}"
+    # Cleanup
+    if [ "$IS_DMG" = true ]; then hdiutil detach "$MOUNT_POINT" -quiet || true; fi
+    rm -f "$ARCHIVE_FILE"
+    rm -rf "$MOUNT_POINT"
+    exit 1
+fi
+
 echo "📋 Copying to $INSTALL_DIR..."
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     echo "   Removing existing installation..."
     rm -rf "$INSTALL_DIR/$APP_NAME"
 fi
 
-cp -r "$SOURCE_PATH" "$INSTALL_DIR/"
+cp -R "$SOURCE_PATH" "$INSTALL_DIR/"
 
 # Cleanup
 if [ "$IS_DMG" = true ]; then
     echo "   Unmounting DMG..."
-    hdiutil detach "$MOUNT_POINT"
+    hdiutil detach "$MOUNT_POINT" -quiet
 fi
 
 rm -f "$ARCHIVE_FILE"
@@ -125,6 +158,9 @@ rm -rf "$MOUNT_POINT"
 
 # Verify installation
 if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
+    # Remove quarantine attributes to allow the app to run
+    xattr -dr com.apple.quarantine "$INSTALL_DIR/$APP_NAME" 2>/dev/null || true
+
     echo -e "${GREEN}✅ Installation successful!${NC}"
     echo ""
     echo "📍 ChaseAI installed to: $INSTALL_DIR/$APP_NAME"
@@ -134,6 +170,6 @@ if [ -d "$INSTALL_DIR/$APP_NAME" ]; then
     echo ""
     echo "💡 Or use Spotlight search (Cmd+Space) and type 'ChaseAI'"
 else
-    echo -e "${RED}❌ Error: Installation failed${NC}"
+    echo -e "${RED}❌ Error: Installation failed - $APP_NAME not found in $INSTALL_DIR${NC}"
     exit 1
 fi
