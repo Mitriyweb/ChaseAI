@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Publish Release Script
-# Builds the app, creates a DMG, and uploads it to GitHub Releases
+# Builds the app, creates DMG and tar.gz, and uploads them to GitHub Releases
 
 set -e
 
@@ -23,8 +23,9 @@ if ! gh auth status &> /dev/null; then
     exit 1
 fi
 
-# 1. Bump version (optional but recommended)
-echo "Current version in Cargo.toml: $(grep '^version =' Cargo.toml | head -1 | cut -d '"' -f2)"
+# 1. Get version
+VERSION=$(grep '^version =' Cargo.toml | head -1 | cut -d '"' -f2)
+echo "Current version in Cargo.toml: $VERSION"
 read -p "Enter new version (or press Enter to keep current): " NEW_VERSION
 
 if [ ! -z "$NEW_VERSION" ]; then
@@ -46,30 +47,42 @@ if [ ! -z "$NEW_VERSION" ]; then
     git commit -m "chore: bump version to $NEW_VERSION"
     git push
     VERSION=$NEW_VERSION
-else
-    VERSION=$(grep '^version =' Cargo.toml | head -1 | cut -d '"' -f2)
 fi
 
 TAG="v$VERSION"
 
-echo "🚀 preparing release $TAG..."
+echo "🚀 Preparing release $TAG..."
 
 # 2. Build App (Prod)
 echo "🔨 Building Production App..."
 bun run build:app
 
-# 3. Create DMG
-echo "📦 Creating DMG..."
-./scripts/macos/create-dmg.sh "$VERSION"
+# 3. Create Installers
+echo "📦 Creating Installers..."
+# These scripts handle their own platform checks
+./scripts/macos/create-dmg.sh "$VERSION" || true
+./scripts/macos/create-archive.sh "$VERSION"
 
 DMG_FILE="target/release/chase-ai-$VERSION-macos.dmg"
+ARCHIVE_FILE="target/release/chase-ai-$VERSION-macos.tar.gz"
 
-if [ ! -f "$DMG_FILE" ]; then
-    echo "❌ Error: DMG file not found at $DMG_FILE"
-    exit 1
-fi
+# 4. Generate Unified Checksums
+echo "🔐 Generating unified checksums..."
+CHECKSUMS_FILE="target/release/checksums.sha256"
+rm -f "$CHECKSUMS_FILE"
 
-# 4. Create GitHub Release
+# Use a subshell to avoid changing directory in the main script
+(
+    cd target/release
+    if [ -f "chase-ai-$VERSION-macos.dmg" ]; then
+        shasum -a 256 "chase-ai-$VERSION-macos.dmg" >> "../../$CHECKSUMS_FILE"
+    fi
+    if [ -f "chase-ai-$VERSION-macos.tar.gz" ]; then
+        shasum -a 256 "chase-ai-$VERSION-macos.tar.gz" >> "../../$CHECKSUMS_FILE"
+    fi
+)
+
+# 5. Create GitHub Release
 echo "⬆️  Creating GitHub Release..."
 
 # Check if tag exists locally
@@ -81,17 +94,22 @@ else
     git push origin "$TAG"
 fi
 
+# Prepare list of files to upload
+UPLOAD_FILES=("$CHECKSUMS_FILE" "scripts/install.sh")
+if [ -f "$DMG_FILE" ]; then UPLOAD_FILES+=("$DMG_FILE"); fi
+if [ -f "$ARCHIVE_FILE" ]; then UPLOAD_FILES+=("$ARCHIVE_FILE"); fi
+
+echo "   Uploading assets: ${UPLOAD_FILES[*]}"
+
 # Upload assets
-# Only if release doesn't exist, create it. If it does, edit it (or just upload).
 if gh release view "$TAG" &> /dev/null; then
     echo "   Release $TAG exists. Uploading assets..."
-    gh release upload "$TAG" "$DMG_FILE" "scripts/install.sh" --clobber
+    gh release upload "$TAG" "${UPLOAD_FILES[@]}" --clobber
 else
     echo "   Creating new release $TAG..."
-    gh release create "$TAG" "$DMG_FILE" "scripts/install.sh" --title "ChaseAI $VERSION" --notes "Release $VERSION"
+    gh release create "$TAG" "${UPLOAD_FILES[@]}" --title "ChaseAI $VERSION" --notes "Release $VERSION"
 fi
 
 echo ""
 echo "✅ Release published successfully!"
-echo "   Download URL: https://github.com/Mitriyweb/ChaseAI/releases/download/$TAG/$(basename $DMG_FILE)"
 echo "   Install Command: curl -sL https://github.com/Mitriyweb/ChaseAI/releases/latest/download/install.sh | bash"
