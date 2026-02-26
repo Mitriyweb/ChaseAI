@@ -55,25 +55,39 @@ cp "target/release/chase-ai" "${MACOS_DIR}/${APP_NAME}"
 echo "Copying Info.plist..."
 cp "Info.plist" "${CONTENTS_DIR}/"
 
-# Copy icon if exists
+# Copy and verify icon files
+echo "Copying icon files..."
+
+# Copy .icns icon (required for dock display)
+if [ -f "resources/icon.icns" ]; then
+    cp "resources/icon.icns" "${RESOURCES_DIR}/"
+    echo "  ✓ Copied icon.icns"
+else
+    echo "  ⚠ Warning: icon.icns not found. Generating..."
+    bash resources/create-icns-icon.sh
+    if [ -f "resources/icon.icns" ]; then
+        cp "resources/icon.icns" "${RESOURCES_DIR}/"
+        echo "  ✓ Generated and copied icon.icns"
+    else
+        echo "  ✗ Error: Failed to generate icon.icns"
+        exit 1
+    fi
+fi
+
+# Copy source icon for reference
 if [ -f "resources/icon.png" ]; then
-    echo "Copying icons..."
     cp "resources/icon.png" "${RESOURCES_DIR}/"
-
-    # Create menu bar icon if it doesn't exist
-    if [ ! -f "resources/icon_menubar.png" ]; then
-        echo "Creating menu bar icon (22x22)..."
-        sips -z 22 22 "resources/icon.png" --out "resources/icon_menubar.png" > /dev/null 2>&1
-    fi
-
-    if [ -f "resources/icon_menubar.png" ]; then
-        cp "resources/icon_menubar.png" "${RESOURCES_DIR}/"
-    fi
+    echo "  ✓ Copied icon.png"
 fi
 
 # Remove quarantine attributes
 echo "Removing quarantine attributes..."
 xattr -cr "${APP_DIR}"
+
+# Verify icon bundle
+echo ""
+echo "Verifying icon bundle..."
+bash "scripts/macos/verify-icon-bundle.sh" "${APP_DIR}"
 
 echo ""
 echo "✅ App bundle created at: ${APP_DIR}"
