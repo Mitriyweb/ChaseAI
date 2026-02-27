@@ -80,6 +80,17 @@ if [ -f "resources/icon.png" ]; then
     echo "  ✓ Copied icon.png"
 fi
 
+# Copy menubar icons
+if [ -f "resources/icon_menubar.png" ]; then
+    cp "resources/icon_menubar.png" "${RESOURCES_DIR}/"
+    echo "  ✓ Copied icon_menubar.png"
+fi
+
+if [ -f "resources/icon_menubar_64.png" ]; then
+    cp "resources/icon_menubar_64.png" "${RESOURCES_DIR}/"
+    echo "  ✓ Copied icon_menubar_64.png"
+fi
+
 # Remove quarantine attributes
 echo "Removing quarantine attributes..."
 xattr -cr "${APP_DIR}"

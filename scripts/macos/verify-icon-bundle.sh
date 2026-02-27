@@ -74,18 +74,19 @@ fi
 echo ""
 echo "Checking menubar icons..."
 MENUBAR_ICON="${RESOURCES_DIR}/icon_menubar.png"
-MENUBAR_ICON_2X="${RESOURCES_DIR}/icon_menubar@2x.png"
+MENUBAR_ICON_64="${RESOURCES_DIR}/icon_menubar_64.png"
 
 if [ -f "$MENUBAR_ICON" ]; then
     echo "✓ Menubar icon found: icon_menubar.png"
 else
-    echo "⚠ Warning: Menubar icon not found: icon_menubar.png"
+    echo "✗ Error: Menubar icon not found: icon_menubar.png"
+    exit 1
 fi
 
-if [ -f "$MENUBAR_ICON_2X" ]; then
-    echo "✓ Retina menubar icon found: icon_menubar@2x.png"
+if [ -f "$MENUBAR_ICON_64" ]; then
+    echo "✓ 64x64 menubar icon found: icon_menubar_64.png"
 else
-    echo "⚠ Warning: Retina menubar icon not found: icon_menubar@2x.png"
+    echo "⚠ Warning: 64x64 menubar icon not found: icon_menubar_64.png"
 fi
 
 echo ""
