@@ -28,8 +28,8 @@
         "bump": "bash scripts/bump-version.sh"
     },
     "devDependencies": {
-        "markdownlint-cli2": "0.20.0",
-        "@j178/prek": "0.2.30"
+        "markdownlint-cli2": "0.21.0",
+        "@j178/prek": "0.3.3"
     },
     "engines": {
         "bun": ">=1.0.0"
@@ -38,6 +38,6 @@
         "@isaacs/brace-expansion": "5.0.1",
         "axios": "1.13.5",
         "markdown-it": "14.1.1",
-        "minimatch": "10.2.1"
+        "minimatch": "10.2.4"
     }
 }
