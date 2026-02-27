@@ -249,7 +249,7 @@ jobs:
       - name: Calculate DMG checksum
         id: checksum
         run: |
-          if [ ! -f "release-artifacts/chase-ai-*.dmg" ]; then
+          if ! ls release-artifacts/chase-ai-*.dmg >/dev/null 2>&1; then
             echo "Error: DMG file not found"
             exit 1
           fi
@@ -265,7 +265,7 @@ jobs:
       - name: Checkout Homebrew tap
         uses: actions/checkout@v4
         with:
-          repository: chaseai/homebrew-chaseai
+          repository: Mitriyweb/homebrew-chaseai
           token: ${{ secrets.HOMEBREW_TAP_TOKEN }}
           path: homebrew-tap
 
@@ -278,9 +278,9 @@ jobs:
           class Chaseai < Formula
             desc "Local control and orchestration system for AI agents"
             homepage "https://github.com/Mitriyweb/ChaseAI"
+            version "${{ needs.check-version.outputs.version }}"
             url "https://github.com/Mitriyweb/ChaseAI/releases/download/v#{version}/chase-ai-#{version}-macos.dmg"
             sha256 "${{ steps.checksum.outputs.sha256 }}"
-            version "${{ needs.check-version.outputs.version }}"
 
             def install
               app_path = "ChaseAI.app"
