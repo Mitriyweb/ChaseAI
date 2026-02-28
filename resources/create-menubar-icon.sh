@@ -91,12 +91,14 @@ if command -v python3 &> /dev/null; then
     echo "Using Python to create monochrome icons..."
     python3 "$TEMP_DIR/convert_menubar.py" "$SOURCE_ICON" "$MENUBAR_ICON" 22
     python3 "$TEMP_DIR/convert_menubar.py" "$SOURCE_ICON" "$MENUBAR_ICON_2X" 44
+    python3 "$TEMP_DIR/convert_menubar.py" "$SOURCE_ICON" "${SCRIPT_DIR}/icon_menubar_64.png" 64
 
     # Verify files were created
-    if [ -f "$MENUBAR_ICON" ] && [ -f "$MENUBAR_ICON_2X" ]; then
+    if [ -f "$MENUBAR_ICON" ] && [ -f "$MENUBAR_ICON_2X" ] && [ -f "${SCRIPT_DIR}/icon_menubar_64.png" ]; then
         echo "✓ Menubar icons created successfully"
         echo "  - $MENUBAR_ICON (22x22)"
         echo "  - $MENUBAR_ICON_2X (44x44)"
+        echo "  - ${SCRIPT_DIR}/icon_menubar_64.png (64x64)"
         exit 0
     fi
 fi
@@ -105,11 +107,13 @@ fi
 echo "Using sips for icon conversion (fallback)..."
 sips -z 22 22 "$SOURCE_ICON" --out "$MENUBAR_ICON" > /dev/null 2>&1
 sips -z 44 44 "$SOURCE_ICON" --out "$MENUBAR_ICON_2X" > /dev/null 2>&1
+sips -z 64 64 "$SOURCE_ICON" --out "${SCRIPT_DIR}/icon_menubar_64.png" > /dev/null 2>&1
 
-if [ -f "$MENUBAR_ICON" ] && [ -f "$MENUBAR_ICON_2X" ]; then
+if [ -f "$MENUBAR_ICON" ] && [ -f "$MENUBAR_ICON_2X" ] && [ -f "${SCRIPT_DIR}/icon_menubar_64.png" ]; then
     echo "✓ Menubar icons created (using sips fallback)"
     echo "  - $MENUBAR_ICON (22x22)"
     echo "  - $MENUBAR_ICON_2X (44x44)"
+    echo "  - ${SCRIPT_DIR}/icon_menubar_64.png (64x64)"
     exit 0
 else
     echo "✗ Failed to create menubar icons"
