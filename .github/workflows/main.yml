@@ -5,6 +5,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  workflow_call:
+    secrets:
+      MACOS_CERTIFICATE:
+        required: false
+      MACOS_CERTIFICATE_PWD:
+        required: false
+      NOTARIZATION_USERNAME:
+        required: false
+      NOTARIZATION_PASSWORD:
+        required: false
 
 jobs:
   validate-rust:
