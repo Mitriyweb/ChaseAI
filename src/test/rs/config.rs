@@ -50,12 +50,23 @@ fn test_default_config() {
         config.default_interface,
         app::network::interface_detector::InterfaceType::Loopback
     );
-
-    #[cfg(not(feature = "beta"))]
-    assert_eq!(config.port_bindings.len(), 1);
-
-    #[cfg(feature = "beta")]
     assert_eq!(config.port_bindings.len(), 2);
+
+    let instruction = &config.port_bindings[0];
+    assert_eq!(instruction.port, 8888);
+    assert_eq!(
+        instruction.role,
+        app::network::port_config::PortRole::Instruction
+    );
+    assert!(!instruction.enabled);
+
+    let verification = &config.port_bindings[1];
+    assert_eq!(verification.port, 9999);
+    assert_eq!(
+        verification.role,
+        app::network::port_config::PortRole::Verification
+    );
+    assert!(verification.enabled);
 }
 
 #[test]
@@ -76,12 +87,8 @@ fn test_real_save_load() -> Result<()> {
         temp_dir.path().join("non_existent"),
     );
     let default_config = NetworkConfig::load()?;
-
-    #[cfg(feature = "beta")]
     assert_eq!(default_config.port_bindings[0].port, 8888);
-
-    #[cfg(not(feature = "beta"))]
-    assert_eq!(default_config.port_bindings[0].port, 9999);
+    assert_eq!(default_config.port_bindings[1].port, 9999);
 
     std::env::remove_var("CHASEAI_TEST_CONFIG_DIR");
     Ok(())
@@ -90,14 +97,12 @@ fn test_real_save_load() -> Result<()> {
 #[test]
 fn test_verification_mode_documentation() {
     let mut config = NetworkConfig::new();
-
-    // In Prod, Verification is at index 0. In Beta, it's at index 1.
-    #[cfg(not(feature = "beta"))]
-    let binding_idx = 0;
-    #[cfg(feature = "beta")]
-    let binding_idx = 1;
-
-    config.port_bindings[binding_idx].enabled = true;
+    let verification_binding = config
+        .port_bindings
+        .iter_mut()
+        .find(|binding| binding.role == app::network::port_config::PortRole::Verification)
+        .expect("verification binding is required in defaults");
+    verification_binding.enabled = true;
 
     // Test Port mode
     config.verification_mode = app::config::network_config::VerificationMode::Port;

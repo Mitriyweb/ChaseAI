@@ -33,7 +33,6 @@ impl NetworkConfig {
         };
 
         // Verification Port - Always present
-        // Verification Port - Always present
         let verification_binding = PortBinding {
             port: 9999,
             interface: loopback_interface.clone(),
@@ -41,27 +40,17 @@ impl NetworkConfig {
             enabled: true,
         };
 
-        #[cfg(feature = "beta")]
-        let mut default_bindings = vec![verification_binding];
-
-        #[cfg(not(feature = "beta"))]
-        let default_bindings = vec![verification_binding];
-
-        // Instruction Port - Only in Beta/Dev
-        #[cfg(feature = "beta")]
-        default_bindings.insert(
-            0,
-            PortBinding {
-                port: 8888,
-                interface: loopback_interface,
-                role: crate::network::port_config::PortRole::Instruction,
-                enabled: false,
-            },
-        );
+        // Instruction Port - Available in all builds
+        let instruction_binding = PortBinding {
+            port: 8888,
+            interface: loopback_interface,
+            role: crate::network::port_config::PortRole::Instruction,
+            enabled: false,
+        };
 
         Self {
             default_interface: InterfaceType::Loopback,
-            port_bindings: default_bindings,
+            port_bindings: vec![instruction_binding, verification_binding],
             verification_mode: VerificationMode::Port,
         }
     }

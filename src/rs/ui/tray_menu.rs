@@ -1,7 +1,5 @@
 use crate::config::network_config::NetworkConfig;
-#[cfg(feature = "beta")]
 use crate::network::interface_detector::InterfaceDetector;
-#[cfg(any(feature = "beta", feature = "dev"))]
 use tray_icon::menu::{CheckMenuItem, Submenu};
 use tray_icon::menu::{Menu, MenuItem, PredefinedMenuItem};
 
@@ -51,21 +49,18 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     menu.append(&PredefinedMenuItem::separator())?;
 
-    // 2. Interface Selection Submenu (BETA Only)
-    #[cfg(feature = "beta")]
-    {
-        let interface_menu = Submenu::new("Select Interface", true);
-        let interfaces = InterfaceDetector::detect_all()?;
+    // 2. Interface Selection Submenu
+    let interface_menu = Submenu::new("Select Interface", true);
+    let interfaces = InterfaceDetector::detect_all()?;
 
-        for interface in interfaces {
-            let is_selected = interface.interface_type == config.default_interface;
-            let id = format!("interface:{}", interface.name);
-            let label = format!("{} ({})", interface.name, interface.ip_address);
-            let item = CheckMenuItem::with_id(id, &label, true, is_selected, None);
-            interface_menu.append(&item)?;
-        }
-        menu.append(&interface_menu)?;
+    for interface in interfaces {
+        let is_selected = interface.interface_type == config.default_interface;
+        let id = format!("interface:{}", interface.name);
+        let label = format!("{} ({})", interface.name, interface.ip_address);
+        let item = CheckMenuItem::with_id(id, &label, true, is_selected, None);
+        interface_menu.append(&item)?;
     }
+    menu.append(&interface_menu)?;
 
     // 3. Ports Configuration
     menu.append(&PredefinedMenuItem::separator())?;
@@ -80,69 +75,57 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
             let role_name = format!("{:?}", binding.role);
             let port_label = format!("{} {} • {}", status_icon, binding.port, role_name);
 
-            // In Prod, we just show the label, no submenu for editing unless beta
-            #[cfg(not(feature = "beta"))]
-            {
-                menu.append(&MenuItem::new(&port_label, false, None))?;
-            }
+            let port_submenu = Submenu::new(&port_label, true);
 
-            #[cfg(feature = "beta")]
-            {
-                let port_submenu = Submenu::new(&port_label, true);
+            // 1. Toggle
+            let toggle_id = format!("port:{}", binding.port);
+            let toggle_label = if binding.enabled {
+                "● Disable Port"
+            } else {
+                "○ Enable Port"
+            };
+            port_submenu.append(&MenuItem::with_id(toggle_id, toggle_label, true, None))?;
 
-                // 1. Toggle
-                let toggle_id = format!("port:{}", binding.port);
-                let toggle_label = if binding.enabled {
-                    "● Disable Port"
-                } else {
-                    "○ Enable Port"
-                };
-                port_submenu.append(&MenuItem::with_id(toggle_id, toggle_label, true, None))?;
+            port_submenu.append(&PredefinedMenuItem::separator())?;
 
-                port_submenu.append(&PredefinedMenuItem::separator())?;
+            // 2. Roles
+            let inst_id = format!("role:{}:Instruction", binding.port);
+            let is_inst = matches!(
+                binding.role,
+                crate::network::port_config::PortRole::Instruction
+            );
+            let inst_label = if is_inst {
+                "● Role: Instruction"
+            } else {
+                "○ Role: Instruction"
+            };
+            port_submenu.append(&MenuItem::with_id(inst_id, inst_label, true, None))?;
 
-                // 2. Roles
-                let inst_id = format!("role:{}:Instruction", binding.port);
-                let is_inst = matches!(
-                    binding.role,
-                    crate::network::port_config::PortRole::Instruction
-                );
-                let inst_label = if is_inst {
-                    "● Role: Instruction"
-                } else {
-                    "○ Role: Instruction"
-                };
-                port_submenu.append(&MenuItem::with_id(inst_id, inst_label, true, None))?;
+            let ver_id = format!("role:{}:Verification", binding.port);
+            let is_ver = matches!(
+                binding.role,
+                crate::network::port_config::PortRole::Verification
+            );
+            let ver_label = if is_ver {
+                "● Role: Verification"
+            } else {
+                "○ Role: Verification"
+            };
+            port_submenu.append(&MenuItem::with_id(ver_id, ver_label, true, None))?;
 
-                let ver_id = format!("role:{}:Verification", binding.port);
-                let is_ver = matches!(
-                    binding.role,
-                    crate::network::port_config::PortRole::Verification
-                );
-                let ver_label = if is_ver {
-                    "● Role: Verification"
-                } else {
-                    "○ Role: Verification"
-                };
-                port_submenu.append(&MenuItem::with_id(ver_id, ver_label, true, None))?;
+            port_submenu.append(&PredefinedMenuItem::separator())?;
 
-                port_submenu.append(&PredefinedMenuItem::separator())?;
+            // 3. Delete
+            let remove_id = format!("remove_port:{}", binding.port);
+            port_submenu.append(&MenuItem::with_id(remove_id, "✕ Remove Port", true, None))?;
 
-                // 3. Delete
-                let remove_id = format!("remove_port:{}", binding.port);
-                port_submenu.append(&MenuItem::with_id(remove_id, "✕ Remove Port", true, None))?;
-
-                menu.append(&port_submenu)?;
-            }
+            menu.append(&port_submenu)?;
         }
     }
 
-    // Add new port button (BETA Only)
-    #[cfg(feature = "beta")]
-    {
-        let add_port = MenuItem::with_id("cmd:add_port", "Add New Port...", true, None);
-        menu.append(&add_port)?;
-    }
+    // Add new port button
+    let add_port = MenuItem::with_id("cmd:add_port", "Add New Port...", true, None);
+    menu.append(&add_port)?;
 
     menu.append(&PredefinedMenuItem::separator())?;
 
@@ -179,16 +162,12 @@ pub fn build_menu(config: &NetworkConfig) -> anyhow::Result<Menu> {
 
     menu.append(&PredefinedMenuItem::separator())?;
 
-    // 4. Download Config Button (BETA Only)
-    #[cfg(feature = "beta")]
-    {
-        menu.append(&PredefinedMenuItem::separator())?;
-        println!("Adding Download Config button to menu");
-        let download_config =
-            MenuItem::with_id("cmd:download_config", "Download Config", true, None);
-        menu.append(&download_config)?;
-        println!("Download Config button added successfully");
-    }
+    // 4. Download Config Button
+    menu.append(&PredefinedMenuItem::separator())?;
+    println!("Adding Download Config button to menu");
+    let download_config = MenuItem::with_id("cmd:download_config", "Download Config", true, None);
+    menu.append(&download_config)?;
+    println!("Download Config button added successfully");
 
     menu.append(&PredefinedMenuItem::separator())?;
 

@@ -26,10 +26,10 @@ fn test_environment_config() {
         assert_eq!(env, "prod");
         assert_eq!(
             config.port_bindings.len(),
-            1,
-            "Prod should have only 1 default port"
+            2,
+            "Prod should have instruction and verification default ports"
         );
-        let binding = &config.port_bindings[0];
+        let binding = &config.port_bindings[1];
         assert_eq!(
             binding.role,
             app::network::port_config::PortRole::Verification
@@ -47,6 +47,20 @@ fn test_environment_config() {
             binding.interface.ip_address.to_string(),
             "127.0.0.1",
             "Prod IP must be 127.0.0.1"
+        );
+
+        let instruction = &config.port_bindings[0];
+        assert_eq!(
+            instruction.role,
+            app::network::port_config::PortRole::Instruction
+        );
+        assert!(
+            !instruction.enabled,
+            "Prod Instruction port defaults to disabled"
+        );
+        assert_eq!(
+            instruction.port, 8888,
+            "Prod instruction port must default to 8888"
         );
     }
 }
